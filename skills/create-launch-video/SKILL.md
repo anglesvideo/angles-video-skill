@@ -58,7 +58,7 @@ Show available preview links when returned.
 
 ## 5. Confirm and render
 
-Before rendering, state that the render consumes one available Angles video allowance on its first successful attempt. Require an explicit confirmation unless the user already said to render immediately and acknowledged the cost.
+Before rendering, state that Angles reserves one available video allowance when the first render starts. A successful first render consumes it; if that first render fails before producing a video, Angles releases the reservation automatically. Require an explicit confirmation unless the user already said to render immediately and acknowledged the cost.
 
 Run:
 
@@ -81,7 +81,7 @@ node <skill-directory>/scripts/angles.mjs status --video <video-id>
 
 - For `rendering`, report concise progress and continue checking at a reasonable interval.
 - For `rendered`, return `videoUrl` and `downloadUrl` prominently.
-- For `failed`, report the latest workflow error and offer one retry with the same idempotency key.
+- For `failed`, report the latest workflow error. Do not claim an allowance was consumed unless the API explicitly reports it; a failed first-render reservation should be released automatically. Offer one retry with the same idempotency key only after correcting deterministic configuration errors such as an unavailable renderer or timeout that is too short.
 - Always include `editUrl` as an optional path for detailed edits, not as a required step.
 
 Read [references/api.md](references/api.md) only when troubleshooting inputs, status values, authentication, or API errors.
