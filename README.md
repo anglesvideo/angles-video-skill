@@ -17,6 +17,16 @@ The Skill:
 5. Requires explicit confirmation before the first render reserves a video allowance.
 6. Returns the finished video, download, and editor links.
 
+## Example gallery
+
+These videos were generated from public software repositories with the Skill. New examples can be added as different products, audiences, selling angles, and visual treatments are explored.
+
+| Video | Source | Selling angle | Template | Music | Format |
+| --- | --- | --- | --- | --- | --- |
+| [Launch Week, Different Rooms](https://cdn.angles.video/videos/498a95fc-e046-4c8a-a34a-ebe6d7f4dfe5.mp4) | angles.video | One product, different conversations for different audiences | Bento Grid | Motivating Mornings · 20% | Landscape · 14 scenes · ~43s |
+
+Each example records the creative choices behind the output so future videos can demonstrate more than a change of visual style. Concepts, templates, music, and renders can all be selected and completed through the Skill without requiring a browser login.
+
 ## Install
 
 ### Codex with Skill Installer
