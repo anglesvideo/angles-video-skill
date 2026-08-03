@@ -13,7 +13,7 @@ The Skill:
 1. Reads the minimum product-facing repository context needed for a launch brief.
 2. Sends a structured product summary—not raw repository files—to Angles.
 3. Presents three distinct selling angles with hooks and recommended templates.
-4. Waits for you to choose a concept and template.
+4. Waits for you to choose a concept, template, and optional background music.
 5. Requires explicit confirmation before the first render reserves a video allowance.
 6. Returns the finished video, download, and editor links.
 
@@ -76,6 +76,35 @@ Create a vertical feature-announcement video from this repository for solo SaaS 
 ```
 
 The Skill will show the concepts first. A render starts only after you choose a direction and explicitly confirm the video allowance.
+
+## Add background music
+
+Include a music preference in your request or provide it after choosing a concept and template:
+
+```text
+Use the Aspiration template with A Blue Day at 25% volume. Ask me before rendering.
+```
+
+Bundled tracks:
+
+- `Raising Me Higher` — uplifting corporate
+- `Motivating Mornings` — bright and optimistic
+- `A Blue Day` — smooth and cinematic
+
+You can also provide a custom HTTPS audio URL or request `none`. Music volume can be written as a percentage or a decimal from `0` to `1`; the Skill converts percentages before calling the API.
+
+An API key is sufficient to set the template, background music, volume, and start rendering. You do not need to sign in to the Angles web editor unless you want to make browser-based edits.
+
+Advanced users can call the bundled client directly:
+
+```bash
+node skills/create-launch-video/scripts/angles.mjs render \
+  --video "your-video-id" \
+  --template frame_liquid_bg_hero \
+  --music "A Blue Day" \
+  --music-volume 0.25 \
+  --confirm
+```
 
 ## Privacy and safety
 
