@@ -46,7 +46,7 @@ Present the returned concepts as a numbered list. Include each title, selling an
 
 ## 4. Get the user's choice
 
-Ask the user to select one concept and one template. Recommend a default, but do not silently decide unless the user explicitly requests automatic selection.
+Ask the user to select one concept and one template. Recommend a default, but do not silently decide unless the user explicitly requests automatic selection. Also capture optional background-music preferences when provided. Accept a bundled track name, an HTTPS audio URL, or `none`; accept volume as either a percentage or a decimal from 0 to 1.
 
 If more template detail is needed, run:
 
@@ -66,8 +66,14 @@ Run:
 node <skill-directory>/scripts/angles.mjs render \
   --video <video-id> \
   --template <template-id> \
+  [--music <track-name|url|none>] \
+  [--music-volume <0-1>] \
   --confirm
 ```
+
+Convert percentage volume to a decimal, for example 25% to `0.25`. Bundled track names are `Raising Me Higher`, `Motivating Mornings`, and `A Blue Day`.
+
+An API key is sufficient for template, music, volume, and rendering. Do not ask the user to log in merely to apply background music. Use `editUrl` only when the user explicitly wants browser-based editing or requests an editor-only feature.
 
 The client derives a stable idempotency key by default. Reuse it for retries so a transient failure does not start a duplicate render.
 

@@ -10,8 +10,17 @@ Authenticate with `Authorization: Bearer $ANGLES_API_KEY`. Never place the key i
 |---|---|---|
 | `concepts` | `POST /concepts` | Create three selectable selling-angle concepts from a structured product summary. |
 | `templates` | `GET /templates` | List template metadata and optional preview URLs. |
-| `render` | `POST /videos/:id/render` | Confirm a template and start an asynchronous render. Requires `Idempotency-Key`. |
+| `render` | `POST /videos/:id/render` | Confirm a template, optionally set background music, and start an asynchronous render. Requires `Idempotency-Key`. |
 | `status` | `GET /videos/:id` | Read `planned`, `rendering`, `rendered`, or `failed` state and final links. |
+
+## Render options
+
+The render body accepts `templateId`, `confirmed`, and these optional fields:
+
+- `backgroundMusicUrl`: an HTTPS audio URL, or `null` to remove existing music.
+- `backgroundMusicVolume`: a number from `0` (silent) to `1` (full volume).
+
+The bundled client exposes them as `--music <track-name|url|none>` and `--music-volume <0-1>`. Named tracks are `Raising Me Higher`, `Motivating Mornings`, and `A Blue Day`.
 
 ## Common errors
 

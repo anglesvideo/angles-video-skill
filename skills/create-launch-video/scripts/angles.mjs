@@ -4,6 +4,11 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 const DEFAULT_BASE_URL = 'https://api.angles.video/api/developer/v1';
+const MUSIC_TRACKS = new Map([
+  ['raising me higher', 'https://assets.mixkit.co/music/34/34.mp3'],
+  ['motivating mornings', 'https://assets.mixkit.co/music/33/33.mp3'],
+  ['a blue day', 'https://assets.mixkit.co/music/150/150.mp3'],
+]);
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
@@ -91,10 +96,48 @@ async function request(path, options = {}) {
 }
 
 function stableRenderKey(videoId, templateId) {
+  return stableRenderKeyWithSettings(videoId, templateId, {});
+}
+
+function stableRenderKeyWithSettings(videoId, templateId, settings) {
+  const suffix = Object.keys(settings).length ? `:${JSON.stringify(settings)}` : '';
   return `skill-${createHash('sha256')
-    .update(`${videoId}:${templateId}`)
+    .update(`${videoId}:${templateId}${suffix}`)
     .digest('hex')
     .slice(0, 40)}`;
+}
+
+function renderSettings(flags) {
+  const settings = {};
+  if (typeof flags.music === 'string') {
+    const music = flags.music.trim();
+    if (!music) throw new Error('The --music value cannot be empty.');
+    const namedTrack = MUSIC_TRACKS.get(music.toLowerCase());
+    if (music.toLowerCase() === 'none') {
+      settings.backgroundMusicUrl = null;
+    } else if (namedTrack) {
+      settings.backgroundMusicUrl = namedTrack;
+    } else {
+      let musicUrl;
+      try {
+        musicUrl = new URL(music);
+      } catch {
+        throw new Error('--music must be a bundled track name, an HTTPS audio URL, or none.');
+      }
+      if (musicUrl.protocol !== 'https:') {
+        throw new Error('--music URL must use HTTPS.');
+      }
+      settings.backgroundMusicUrl = musicUrl.toString();
+    }
+  }
+  if (typeof flags['music-volume'] === 'string') {
+    const volume = Number(flags['music-volume']);
+    if (!Number.isFinite(volume) || volume < 0 || volume > 1) {
+      throw new Error('--music-volume must be a number from 0 to 1, such as 0.25.');
+    }
+    settings.backgroundMusicVolume = volume;
+  }
+  return settings;
 }
 
 function usage() {
@@ -102,7 +145,7 @@ function usage() {
     'Usage:',
     '  angles.mjs concepts --input <file|->',
     '  angles.mjs templates [--video <video-id>]',
-    '  angles.mjs render --video <video-id> --template <template-id> --confirm [--idempotency-key <key>]',
+    '  angles.mjs render --video <video-id> --template <template-id> --confirm [--music <track-name|url|none>] [--music-volume <0-1>] [--idempotency-key <key>]',
     '  angles.mjs status --video <video-id>',
   ].join('\n');
 }
@@ -127,14 +170,17 @@ async function main() {
     if (flags.confirm !== true) {
       throw new Error('Rendering consumes an Angles video allowance. Re-run with --confirm.');
     }
+    const settings = renderSettings(flags);
     const idempotencyKey =
       typeof flags['idempotency-key'] === 'string'
         ? flags['idempotency-key']
-        : stableRenderKey(videoId, templateId);
+        : Object.keys(settings).length
+          ? stableRenderKeyWithSettings(videoId, templateId, settings)
+          : stableRenderKey(videoId, templateId);
     result = await request(`/videos/${encodeURIComponent(videoId)}/render`, {
       method: 'POST',
       headers: { 'Idempotency-Key': idempotencyKey },
-      body: JSON.stringify({ templateId, confirmed: true }),
+      body: JSON.stringify({ templateId, confirmed: true, ...settings }),
     });
   } else if (command === 'status') {
     const videoId = requireString(flags, 'video');

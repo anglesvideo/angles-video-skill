@@ -106,3 +106,64 @@ test('reuses a stable idempotency key for render retries', async () => {
   assert.match(observedKeys[0], /^skill-[a-f0-9]{40}$/);
   assert.equal(observedKeys[0], observedKeys[1]);
 });
+
+test('sends a named background-music track and volume with the render request', async () => {
+  await withServer(async (request, response) => {
+    let body = '';
+    for await (const chunk of request) body += chunk;
+    assert.deepEqual(JSON.parse(body), {
+      templateId: 'aspiration',
+      confirmed: true,
+      backgroundMusicUrl: 'https://assets.mixkit.co/music/150/150.mp3',
+      backgroundMusicVolume: 0.25,
+    });
+    response.setHeader('content-type', 'application/json');
+    response.end(JSON.stringify({ id: 'video-3', status: 'rendering' }));
+  }, async baseUrl => {
+    const result = await runClient([
+      'render',
+      '--video',
+      'video-3',
+      '--template',
+      'aspiration',
+      '--music',
+      'A Blue Day',
+      '--music-volume',
+      '0.25',
+      '--confirm',
+    ], { baseUrl });
+    assert.equal(result.code, 0);
+  });
+});
+
+test('rejects a background-music volume outside the supported range', async () => {
+  const result = await runClient([
+    'render',
+    '--video',
+    'video-1',
+    '--template',
+    'developer-demo',
+    '--music-volume',
+    '25',
+    '--confirm',
+  ]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /number from 0 to 1/);
+});
+
+test('rejects an unknown background-music name before rendering', async () => {
+  const result = await runClient([
+    'render',
+    '--video',
+    'video-1',
+    '--template',
+    'developer-demo',
+    '--music',
+    'Unknown Track',
+    '--confirm',
+  ]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /bundled track name/);
+});
