@@ -44,6 +44,8 @@ node <skill-directory>/scripts/angles.mjs concepts --input <context.json>
 
 Present the returned concepts as a numbered list. Include each title, selling angle, hook, and recommended templates. Keep the `videoId` available for the next calls.
 
+When the API returns `launchCopy`, also show a concise publishing copy preview: the short caption, the best LinkedIn or X post, and any thumbnail text options. Treat this as part of the launch asset, not as a separate generation step. Prefer AI-generated packs (`source: "ai"`) when present; fallback packs are still usable but may be more literal.
+
 ## 4. Get the user's choice
 
 Ask the user to select one concept and one template. Recommend a default, but do not silently decide unless the user explicitly requests automatic selection. Also capture optional background-music preferences when provided. Accept a bundled track name, an HTTPS audio URL, or `none`; accept volume as either a percentage or a decimal from 0 to 1.
@@ -87,6 +89,7 @@ node <skill-directory>/scripts/angles.mjs status --video <video-id>
 
 - For `rendering`, report concise progress and continue checking at a reasonable interval.
 - For `rendered`, return `videoUrl` and `downloadUrl` prominently.
+- When `launchCopy` is present, include the platform-specific publish copy after the video links so the user can post the video without asking for a second asset. If `hooks` are present, include one or two strong alternatives.
 - For `failed`, report the latest workflow error. Do not claim an allowance was consumed unless the API explicitly reports it; a failed first-render reservation should be released automatically. Offer one retry with the same idempotency key only after correcting deterministic configuration errors such as an unavailable renderer or timeout that is too short.
 - Always include `editUrl` as an optional path for detailed edits, not as a required step.
 

@@ -6,12 +6,14 @@ Authenticate with `Authorization: Bearer $ANGLES_API_KEY`. Never place the key i
 
 ## Commands and endpoints
 
-| Client command | Endpoint | Purpose |
-|---|---|---|
-| `concepts` | `POST /concepts` | Create three selectable selling-angle concepts from a structured product summary. |
-| `templates` | `GET /templates` | List template metadata and optional preview URLs. |
-| `render` | `POST /videos/:id/render` | Confirm a template, optionally set background music, and start an asynchronous render. Requires `Idempotency-Key`. |
-| `status` | `GET /videos/:id` | Read `planned`, `rendering`, `rendered`, or `failed` state and final links. |
+| Client command | Endpoint                  | Purpose                                                                                                            |
+| -------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `concepts`     | `POST /concepts`          | Create three selectable selling-angle concepts from a structured product summary.                                  |
+| `templates`    | `GET /templates`          | List template metadata and optional preview URLs.                                                                  |
+| `render`       | `POST /videos/:id/render` | Confirm a template, optionally set background music, and start an asynchronous render. Requires `Idempotency-Key`. |
+| `status`       | `GET /videos/:id`         | Read `planned`, `rendering`, `rendered`, or `failed` state and final links.                                        |
+
+`concepts` and `status` responses may include `launchCopy`, a publishing pack derived from the selected video's title, hook, selling angle, caption, CTA, and product context. It includes a short caption, LinkedIn, X, TikTok, and YouTube Shorts copy, pinned-comment text, thumbnail text options, hashtags, optional hook alternatives, and `source` (`ai` or `fallback`). Use it directly when presenting the final launch asset.
 
 ## Render options
 
