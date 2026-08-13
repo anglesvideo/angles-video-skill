@@ -1,0 +1,4 @@
+interface:
+  display_name: "Video From Recording"
+  short_description: "Turn a screen recording into an Angles promo video"
+  default_prompt: "Use $create-video-from-recording to turn this screen recording into a promo video."

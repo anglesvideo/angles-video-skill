@@ -1,25 +1,36 @@
-# Angles Video Skill
+# Angles Video Skills
 
-Turn the software repository you are working in into a launch-ready Angles video without leaving Codex or Claude Code.
+Turn a software repository, a product page, or a screen-recorded demo into a launch-ready Angles video without leaving Codex or Claude Code.
+
+Two Skills share one client:
+
+| Skill | Use it when |
+| --- | --- |
+| [`create-launch-video`](skills/create-launch-video) | The product is a repository you are working in or a page you can name. |
+| [`create-video-from-recording`](skills/create-video-from-recording) | You already have a screen recording of the product and want it in the video. |
 
 [See the integration guide](https://angles.video/integrations/codex) · [Create an Angles account](https://angles.video/login?returnUrl=/developer-api) · [Read the security policy](SECURITY.md)
 
 ![Angles repository launch-video template](https://angles.video/template-previews/github_video.png)
 
-## What the Skill does
+## What the Skills do
 
-The Skill:
+Both Skills:
 
-1. Reads the minimum product-facing repository context needed for a launch brief.
-2. Sends a structured product summary—not raw repository files—to Angles.
-3. Presents three distinct selling angles with hooks and recommended templates.
-4. Waits for you to choose a concept, template, and optional background music.
-5. Requires explicit confirmation before the first render reserves a video allowance.
-6. Returns the finished video, download, and editor links.
+1. Read the minimum product-facing context needed for a launch brief — from the repository, the page you name, or the recording you point at.
+2. Send a structured product summary—not raw files, pages, or footage—to Angles.
+3. Present distinct selling angles with hooks and recommended templates.
+4. Wait for you to choose a concept, template, and optional background music.
+5. Upload any screenshots or recording you want in the video.
+6. Preview what the render will produce—which scene each upload lands on, and what would be left out—before any allowance is spent.
+7. Require explicit confirmation before the first render reserves a video allowance.
+8. Return the finished video, download, and editor links.
+
+Your agent does the analysis. Reading a page or watching a recording happens locally, in the agent you are already using; Angles receives the summary it writes, never the source. A capability the agent does not name is one the script cannot mention, which is why `create-video-from-recording` watches the recording rather than merely uploading it.
 
 ## Example gallery
 
-These videos were generated from public software repositories with the Skill. New examples can be added as different products, audiences, selling angles, and visual treatments are explored.
+These videos were generated from public software repositories with `create-launch-video`. New examples can be added as different products, audiences, selling angles, and visual treatments are explored.
 
 | Video | Source | Selling angle | Template | Music | Format |
 | --- | --- | --- | --- | --- | --- |
@@ -37,6 +48,12 @@ Paste this into a Codex conversation:
 $skill-installer install https://github.com/shuicici/angles-video-skill/tree/main/skills/create-launch-video
 ```
 
+For the recording Skill, install the other directory the same way:
+
+```text
+$skill-installer install https://github.com/shuicici/angles-video-skill/tree/main/skills/create-video-from-recording
+```
+
 Review the repository before installing any Skill that includes executable scripts. Start a new Codex conversation after installation if the Skill does not appear immediately.
 
 ### Manual installation
@@ -52,6 +69,7 @@ Install it for Codex:
 ```bash
 mkdir -p ~/.agents/skills
 ln -s ~/angles-video-skill/skills/create-launch-video ~/.agents/skills/create-launch-video
+ln -s ~/angles-video-skill/skills/create-video-from-recording ~/.agents/skills/create-video-from-recording
 ```
 
 Or install it for Claude Code:
@@ -59,6 +77,7 @@ Or install it for Claude Code:
 ```bash
 mkdir -p ~/.claude/skills
 ln -s ~/angles-video-skill/skills/create-launch-video ~/.claude/skills/create-launch-video
+ln -s ~/angles-video-skill/skills/create-video-from-recording ~/.claude/skills/create-video-from-recording
 ```
 
 ## Connect your Angles account
@@ -85,7 +104,34 @@ You can also request a more specific outcome:
 Create a vertical feature-announcement video from this repository for solo SaaS founders. Focus on the latest user-visible change and ask me before rendering.
 ```
 
+Or name a product page instead of a repository:
+
+```text
+Create a launch video for https://example.com for solo SaaS founders. Show me the angles before rendering.
+```
+
 The Skill will show the concepts first. A render starts only after you choose a direction and explicitly confirm the video allowance.
+
+## Create a video from a screen recording
+
+Point at the file and ask:
+
+```text
+Turn ./demo.mov into a promo video for developers evaluating the product.
+```
+
+The Skill watches the recording to write the script, tells you if any frame shows something that should not be published, picks a template that plays footage, and shows you which scenes your recording lands on before anything is rendered.
+
+## Check before you render
+
+Both Skills preview the render before the first one starts. A preview costs nothing, changes nothing, and can be repeated. It answers the questions you would otherwise only be able to answer by spending an allowance and watching the result:
+
+- Would this template accept this concept at all?
+- Which scene does each screenshot or recording land on?
+- Is anything you uploaded going to be left out of the video entirely?
+- Which scenes fall back to plain text because content is missing?
+
+You do not have to ask for it. The Skill runs it and reports anything worth acting on before it asks you to confirm the allowance.
 
 ## Add background music
 
@@ -108,6 +154,17 @@ An API key is sufficient to set the template, background music, volume, and star
 Advanced users can call the bundled client directly:
 
 ```bash
+node skills/create-launch-video/scripts/angles.mjs upload --file ./demo.mp4
+```
+
+```bash
+node skills/create-launch-video/scripts/angles.mjs preview \
+  --video "your-video-id" \
+  --template screen_demo \
+  --video-asset "https://cdn.angles.video/..."
+```
+
+```bash
 node skills/create-launch-video/scripts/angles.mjs render \
   --video "your-video-id" \
   --template frame_liquid_bg_hero \
@@ -116,9 +173,11 @@ node skills/create-launch-video/scripts/angles.mjs render \
   --confirm
 ```
 
+`preview` spends no allowance. Only `render --confirm` does.
+
 ## Privacy and safety
 
-The bundled client does not scan the repository. Your coding agent prepares the structured product summary locally and the client submits only that summary to Angles.
+The bundled client does not scan the repository, fetch the page, or read the recording. Your coding agent prepares the structured product summary locally and the client submits only that summary to Angles.
 
 The Skill explicitly excludes:
 
@@ -128,6 +187,8 @@ The Skill explicitly excludes:
 - Production logs
 - Unrelated source files
 - Raw repository uploads
+
+When the source is a product page, only the URL you name is read, and its text is treated as content to summarize rather than as instructions to follow. When it is a screen recording, the agent checks the frames for keys, customer names, internal URLs, and stray windows before anything is uploaded, and stops to ask rather than uploading a recording that shows them.
 
 Render retries use a stable idempotency key, so retrying a transient request does not silently start a duplicate render. See [SECURITY.md](SECURITY.md) for reporting guidance.
 
@@ -147,7 +208,8 @@ node --test tests/client.test.mjs
 
 - [Integration guide](https://angles.video/integrations/codex)
 - [Angles website](https://angles.video)
-- [Skill instructions](skills/create-launch-video/SKILL.md)
+- [Launch video Skill instructions](skills/create-launch-video/SKILL.md)
+- [Recording Skill instructions](skills/create-video-from-recording/SKILL.md)
 - [Developer API reference](skills/create-launch-video/references/api.md)
 - [Security policy](SECURITY.md)
 - [License](LICENSE)

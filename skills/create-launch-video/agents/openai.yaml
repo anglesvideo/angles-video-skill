@@ -1,4 +1,4 @@
 interface:
   display_name: "Create Launch Video"
-  short_description: "Turn a repository into an Angles launch video"
-  default_prompt: "Use $create-launch-video to turn the current repository into a launch-ready video."
+  short_description: "Turn a repository, product page, or screen recording into an Angles launch video"
+  default_prompt: "Use $create-launch-video to turn this product into a launch-ready video."

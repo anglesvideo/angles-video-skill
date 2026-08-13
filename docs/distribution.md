@@ -1,12 +1,12 @@
 # Distribution kit
 
-Use this document when publishing the Angles Video Skill outside the repository. Keep claims tied to the current public workflow and link to the integration guide for installation.
+Use this document when publishing the Angles Video Skills outside the repository. Keep claims tied to the current public workflow and link to the integration guide for installation.
 
 ## GitHub repository metadata
 
 **Description**
 
-> Turn a software repository into three selling angles and a launch-ready Angles video from Codex or Claude Code.
+> Turn a software repository, a product page, or a screen recording into three selling angles and a launch-ready Angles video from Codex or Claude Code.
 
 **Homepage**
 
@@ -26,15 +26,17 @@ developer-tools
 
 ## GitHub Release
 
-- Tag: `v0.1.0`
-- Title: `Angles Video Skill v0.1.0 — repository to launch video`
-- Notes: [`release-v0.1.0.md`](release-v0.1.0.md)
+- Tag: `v0.2.0`
+- Title: `Angles Video Skills v0.2.0 — see the render before you spend it`
+- Notes: [`release-v0.2.0.md`](release-v0.2.0.md)
+
+Earlier releases: [`v0.1.1`](release-v0.1.1.md), [`v0.1.0`](release-v0.1.0.md).
 
 After authenticating GitHub CLI, the repository owner can apply the metadata and create the release with:
 
 ```bash
 gh repo edit shuicici/angles-video-skill \
-  --description "Turn a software repository into three selling angles and a launch-ready Angles video from Codex or Claude Code." \
+  --description "Turn a software repository, a product page, or a screen recording into three selling angles and a launch-ready Angles video from Codex or Claude Code." \
   --homepage "https://angles.video/integrations/codex" \
   --add-topic agent-skill \
   --add-topic codex-skill \
@@ -44,10 +46,10 @@ gh repo edit shuicici/angles-video-skill \
   --add-topic saas-marketing \
   --add-topic developer-tools
 
-gh release create v0.1.0 \
+gh release create v0.2.0 \
   --repo shuicici/angles-video-skill \
-  --title "Angles Video Skill v0.1.0 — repository to launch video" \
-  --notes-file docs/release-v0.1.0.md
+  --title "Angles Video Skills v0.2.0 — see the render before you spend it" \
+  --notes-file docs/release-v0.2.0.md
 ```
 
 ## Short social post
@@ -67,7 +69,7 @@ gh release create v0.1.0 \
 >
 > When a founder finishes a feature, most of the useful launch context already exists across the README, public docs, package description, and changelog. The missing step is turning that context into a message people care about.
 >
-> We have released the Angles Video Skill for Codex and Claude Code. It keeps the workflow inside the repository:
+> We have released the Angles Video Skills for Codex and Claude Code. They keep the workflow where you already are:
 >
 > 1. Read a small amount of safe, product-facing context.
 > 2. Generate three genuinely different selling angles.
@@ -109,7 +111,7 @@ gh release create v0.1.0 \
 
 **Body**
 
-> Angles Video Skill is an open-source Skill for Codex and Claude Code. It uses product-facing repository context to prepare three distinct selling-angle concepts, then lets the user choose a template and confirm before rendering a launch video through Angles.
+> Angles Video Skills is an open-source pair of Skills for Codex and Claude Code. One turns a repository or product page into three distinct selling-angle concepts; the other turns a screen recording into a promo video that plays the footage. Both let the user choose a template and confirm before rendering through Angles.
 >
 > The client does not scan or upload raw repository files. The coding agent prepares a structured summary locally and excludes environment files, credentials, private keys, database dumps, customer data, production logs, and unrelated source files.
 >
