@@ -35,7 +35,7 @@ Earlier releases: [`v0.1.1`](release-v0.1.1.md), [`v0.1.0`](release-v0.1.0.md).
 After authenticating GitHub CLI, the repository owner can apply the metadata and create the release with:
 
 ```bash
-gh repo edit shuicici/angles-video-skill \
+gh repo edit anglesvideo/angles-video-skill \
   --description "Turn a software repository, a product page, or a screen recording into three selling angles and a launch-ready Angles video from Codex or Claude Code." \
   --homepage "https://angles.video/integrations/codex" \
   --add-topic agent-skill \
@@ -47,7 +47,7 @@ gh repo edit shuicici/angles-video-skill \
   --add-topic developer-tools
 
 gh release create v0.2.0 \
-  --repo shuicici/angles-video-skill \
+  --repo anglesvideo/angles-video-skill \
   --title "Angles Video Skills v0.2.0 — see the render before you spend it" \
   --notes-file docs/release-v0.2.0.md
 ```
@@ -60,7 +60,7 @@ gh release create v0.2.0 \
 >
 > It does not upload raw repository files, and it asks before using a video allowance.
 >
-> GitHub: https://github.com/shuicici/angles-video-skill
+> GitHub: https://github.com/anglesvideo/angles-video-skill
 > Guide: https://angles.video/integrations/codex
 
 ## LinkedIn post
@@ -79,7 +79,7 @@ gh release create v0.2.0 \
 >
 > Raw repository files are not uploaded to Angles. The coding agent prepares a structured product summary locally, and the Skill explicitly excludes environment files, credentials, private keys, customer data, database dumps, and production logs.
 >
-> The Skill is open source: https://github.com/shuicici/angles-video-skill
+> The Skill is open source: https://github.com/anglesvideo/angles-video-skill
 >
 > Installation and workflow guide: https://angles.video/integrations/codex
 
@@ -97,7 +97,7 @@ gh release create v0.2.0 \
 >
 > Nothing renders until the user chooses a concept and explicitly confirms the video allowance. The client also uses a stable idempotency key for retries.
 >
-> The Skill and client are public here: https://github.com/shuicici/angles-video-skill
+> The Skill and client are public here: https://github.com/anglesvideo/angles-video-skill
 >
 > The install guide and privacy boundary are here: https://angles.video/integrations/codex
 >
@@ -115,7 +115,7 @@ gh release create v0.2.0 \
 >
 > The client does not scan or upload raw repository files. The coding agent prepares a structured summary locally and excludes environment files, credentials, private keys, database dumps, customer data, production logs, and unrelated source files.
 >
-> GitHub: https://github.com/shuicici/angles-video-skill
+> GitHub: https://github.com/anglesvideo/angles-video-skill
 >
 > Guide: https://angles.video/integrations/codex
 >

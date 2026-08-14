@@ -17,7 +17,7 @@ Turn the software repository you are working in into a launch-ready product vide
 Paste this into a Codex conversation:
 
 ```text
-$skill-installer install https://github.com/shuicici/angles-video-skill/tree/main/skills/create-launch-video
+$skill-installer install https://github.com/anglesvideo/angles-video-skill/tree/main/skills/create-launch-video
 ```
 
 Then create an API key from the [Angles Integrations page](https://angles.video/login?returnUrl=/developer-api) and ask:

@@ -45,13 +45,13 @@ Each example records the creative choices behind the output so future videos can
 Paste this into a Codex conversation:
 
 ```text
-$skill-installer install https://github.com/shuicici/angles-video-skill/tree/main/skills/create-launch-video
+$skill-installer install https://github.com/anglesvideo/angles-video-skill/tree/main/skills/create-launch-video
 ```
 
 For the recording Skill, install the other directory the same way:
 
 ```text
-$skill-installer install https://github.com/shuicici/angles-video-skill/tree/main/skills/create-video-from-recording
+$skill-installer install https://github.com/anglesvideo/angles-video-skill/tree/main/skills/create-video-from-recording
 ```
 
 Review the repository before installing any Skill that includes executable scripts. Start a new Codex conversation after installation if the Skill does not appear immediately.
@@ -61,7 +61,7 @@ Review the repository before installing any Skill that includes executable scrip
 Clone the repository:
 
 ```bash
-git clone --depth 1 https://github.com/shuicici/angles-video-skill.git ~/angles-video-skill
+git clone --depth 1 https://github.com/anglesvideo/angles-video-skill.git ~/angles-video-skill
 ```
 
 Install it for Codex:

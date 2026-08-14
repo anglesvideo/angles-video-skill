@@ -49,11 +49,11 @@ Both Skills preview the render before the first one starts. A preview writes not
 Paste this into a Codex conversation:
 
 ```text
-$skill-installer install https://github.com/shuicici/angles-video-skill/tree/main/skills/create-launch-video
+$skill-installer install https://github.com/anglesvideo/angles-video-skill/tree/main/skills/create-launch-video
 ```
 
 ```text
-$skill-installer install https://github.com/shuicici/angles-video-skill/tree/main/skills/create-video-from-recording
+$skill-installer install https://github.com/anglesvideo/angles-video-skill/tree/main/skills/create-video-from-recording
 ```
 
 For a manual Codex installation, clone the repository and link each Skill into `~/.agents/skills`. Existing clones can update with `git pull --ff-only origin main`.

@@ -25,7 +25,7 @@ The Skill converts `25%` to `0.25` and submits the music settings only after the
 Paste this into a Codex conversation:
 
 ```text
-$skill-installer install https://github.com/shuicici/angles-video-skill/tree/main/skills/create-launch-video
+$skill-installer install https://github.com/anglesvideo/angles-video-skill/tree/main/skills/create-launch-video
 ```
 
 For a manual Codex installation, clone the repository and link the Skill into `~/.agents/skills`. Existing clones can update with `git pull --ff-only origin main`.
