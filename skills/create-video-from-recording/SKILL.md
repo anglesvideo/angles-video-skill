@@ -47,6 +47,8 @@ If any appear, stop and tell the user what you found and roughly where, then ask
 - `launchGoal`
 - `notableFeatures` — the capabilities you saw, written as things a user can do
 - `aspectRatio`: `landscape` or `portrait`, matching the recording. A landscape capture placed in a portrait template is cropped or boxed, so follow the footage unless the user asks for a specific format.
+- `preferredTemplateId`: include a colour suffix such as `screen_demo:signal` when the user chooses a palette.
+- `backgroundMotif`: use one of the selected template's advertised decorative treatments; it is currently supported by `screen_demo`.
 
 Ask one short question only when the product name, audience, or call to action cannot be inferred from the recording and the user's own words.
 
@@ -65,6 +67,8 @@ node <skill-directory>/scripts/angles.mjs templates
 Do not read `imageSupport` or `videoSupport` for this. They describe scene slots for hand editing in the browser and answer a different question.
 
 Recommend one and let the user confirm, unless they asked you to decide.
+
+Show the selected template's `colorVariants` and `backgroundMotifs` and ask for a colour and, when supported, a background decoration. Do not invent a motif name; use `none` for a clean background.
 
 ## 4. Generate concepts for that template
 
@@ -103,6 +107,7 @@ Preview before every first render. It consumes no allowance, writes nothing, and
 node <skill-directory>/scripts/angles.mjs preview \
   --video <video-id> \
   --template <template-id> \
+  [--background-motif <motif>] \
   --video-asset <uploaded-url>
 ```
 
@@ -119,6 +124,7 @@ State that Angles reserves one available video allowance when the first render s
 node <skill-directory>/scripts/angles.mjs render \
   --video <video-id> \
   --template <template-id> \
+  [--background-motif <motif>] \
   --video-asset <uploaded-url> \
   [--music <track-name|url|none>] \
   [--music-volume <0-1>] \

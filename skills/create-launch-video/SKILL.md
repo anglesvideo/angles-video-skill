@@ -50,6 +50,7 @@ Add two more when the user has said what they want:
 
 - `aspectRatio`: `landscape` or `portrait`. Set this field — describing the orientation in `launchGoal` or any other prose does not control it.
 - `preferredTemplateId`: generate all three concepts for one template. Set it whenever the user already has screenshots, because a scene plan is written for the template it was generated against. Choosing here is what makes their images land in the plan; switching template after generation leaves a plan the new template rejects.
+- `backgroundMotif`: one of the decorative treatments exposed by the selected template. It is currently supported by `screen_demo`; use `none` when the user wants a clean background.
 
 A `preferredTemplateId` that cannot render the requested `aspectRatio` is rejected before anything is generated, so the two are safe to send together.
 
@@ -75,7 +76,7 @@ When the API returns `launchCopy`, also show a concise publishing copy preview: 
 
 ## 4. Get the user's choice
 
-Ask the user to select one concept and one template. Recommend a default, but do not silently decide unless the user explicitly requests automatic selection.
+Ask the user to select one concept, one template/color variant, and (when the selected template exposes them) one background decoration. Recommend a default, but do not silently decide unless the user explicitly requests automatic selection.
 
 When the user has screenshots for the video, filter the candidates by each template's `media` block rather than by name — templates are added regularly, so any list of names here would go stale:
 
@@ -97,6 +98,8 @@ node <skill-directory>/scripts/angles.mjs templates --video <video-id>
 
 Show available preview links when returned.
 
+Use the template's `colorVariants` and `backgroundMotifs` fields to show the available choices. A colour choice is represented by the template id suffix, for example `screen_demo:signal`. Background motifs are explicit render settings, not a reason to regenerate the concept.
+
 ## 5. Upload the user's media
 
 When the user has screenshots or other images for the video, upload each file and keep the returned `url`:
@@ -117,6 +120,7 @@ Preview before every first render. It consumes no allowance, writes nothing, and
 node <skill-directory>/scripts/angles.mjs preview \
   --video <video-id> \
   --template <template-id> \
+  [--background-motif <motif>] \
   [--image-asset <https-url>]
 ```
 
@@ -139,6 +143,7 @@ Run:
 node <skill-directory>/scripts/angles.mjs render \
   --video <video-id> \
   --template <template-id> \
+  [--background-motif <motif>] \
   [--image-asset <https-url>] \
   [--music <track-name|url|none>] \
   [--music-volume <0-1>] \
@@ -149,7 +154,7 @@ Pass the same assets the preview was run with. Media is part of the idempotency 
 
 Convert percentage volume to a decimal, for example 25% to `0.25`. Bundled track names are `Raising Me Higher`, `Motivating Mornings`, and `A Blue Day`.
 
-An API key is sufficient for template, music, volume, and rendering. Do not ask the user to log in merely to apply background music. Use `editUrl` only when the user explicitly wants browser-based editing or requests an editor-only feature.
+An API key is sufficient for template/color variant, background decoration, music, volume, and rendering. Do not ask the user to log in merely to apply these settings. Use `editUrl` only when the user explicitly wants browser-based editing or requests an editor-only feature.
 
 The client derives a stable idempotency key by default. Reuse it for retries so a transient failure does not start a duplicate render.
 

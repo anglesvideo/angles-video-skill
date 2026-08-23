@@ -8,14 +8,16 @@ Authenticate with `Authorization: Bearer $ANGLES_API_KEY`. Never place the key i
 
 | Client command | Endpoint                  | Purpose                                                                                                            |
 | -------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `concepts`     | `POST /concepts`          | Create three selectable selling-angle concepts from a structured product summary. Accepts `aspectRatio` (`landscape` or `portrait`) and `preferredTemplateId`. |
-| `templates`    | `GET /templates`          | List template metadata and optional preview URLs.                                                                  |
+| `concepts`     | `POST /concepts`          | Create three selectable selling-angle concepts from a structured product summary. Accepts `aspectRatio`, `preferredTemplateId`, and `backgroundMotif`. |
+| `templates`    | `GET /templates`          | List template metadata, colour variants, background motifs, and optional preview URLs.                                                                  |
 | `upload`       | `POST /assets`            | Upload one local image or video and return a public HTTPS URL to pass to `preview` and `render`.                   |
 | `preview`      | `POST /videos/:id/render/preview` | Report what a render would do — blockers, downgraded scenes, and the asset bound to each scene — without rendering, writing, or spending an allowance. |
-| `render`       | `POST /videos/:id/render` | Confirm a template, optionally set background music, and start an asynchronous render. Requires `Idempotency-Key`. |
+| `render`       | `POST /videos/:id/render` | Confirm a template/color variant, optionally set a background motif or music, and start an asynchronous render. Requires `Idempotency-Key`. |
 | `status`       | `GET /videos/:id`         | Read `planned`, `rendering`, `rendered`, or `failed` state and final links.                                        |
 
-`aspectRatio` and `preferredTemplateId` are the only ways to control orientation and template. Orientation stated in prose is not read as an instruction, and a template chosen after generation cannot be applied to a scene plan written for a different one. A `preferredTemplateId` that cannot render the requested `aspectRatio` returns `400` naming both, before anything is generated or charged.
+`aspectRatio` and `preferredTemplateId` are the ways to control orientation and template. Orientation stated in prose is not read as an instruction, and a template chosen after generation cannot be applied to a scene plan written for a different one. A `preferredTemplateId` may include a colour suffix such as `screen_demo:signal`. A `preferredTemplateId` that cannot render the requested `aspectRatio` returns `400` naming both, before anything is generated or charged.
+
+`backgroundMotif` is currently supported only by `screen_demo`. Available values are `none`, `corner_glow`, `side_light`, `orbit_ring`, `grid_field`, and `split_gradient`. Use `backgroundMotifs` from `GET /templates` as the source of truth.
 
 Each template carries a `media` block answering whether uploads reach the finished video: `acceptsClips`, `acceptsImages`, `minimumClips`, and `minimumImages`. It is derived from the routing the renderer runs, so it is the field to filter on. The neighbouring `imageSupport` and `videoSupport` describe scene slots for hand editing in the browser and answer a different question — several templates publish image slots but route no uploaded image at render time.
 
@@ -29,6 +31,7 @@ The render body accepts `templateId`, `confirmed`, and these optional fields:
 
 - `backgroundMusicUrl`: an HTTPS audio URL, or `null` to remove existing music.
 - `backgroundMusicVolume`: a number from `0` (silent) to `1` (full volume).
+- `backgroundMotif`: one of the values listed above. This changes the decorative layer while preserving the generated non-colour style pack.
 
 - `productImages`: array of public HTTPS image URLs.
 - `productVideos`: array of `{ "url": "https://...mp4" }`.

@@ -10,6 +10,14 @@ const MUSIC_TRACKS = new Map([
   ['motivating mornings', 'https://assets.mixkit.co/music/33/33.mp3'],
   ['a blue day', 'https://assets.mixkit.co/music/150/150.mp3'],
 ]);
+const BACKGROUND_MOTIFS = new Set([
+  'none',
+  'corner_glow',
+  'side_light',
+  'orbit_ring',
+  'grid_field',
+  'split_gradient',
+]);
 
 const UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
 /** The types Angles accepts, keyed by the extension it reads them from. */
@@ -205,6 +213,15 @@ function stableRenderKeyWithSettings(videoId, templateId, settings) {
 
 function renderSettings(flags) {
   const settings = {};
+  if (typeof flags['background-motif'] === 'string') {
+    const motif = flags['background-motif'].trim();
+    if (!BACKGROUND_MOTIFS.has(motif)) {
+      throw new Error(
+        `--background-motif must be one of ${[...BACKGROUND_MOTIFS].join(', ')}.`
+      );
+    }
+    settings.backgroundMotif = motif;
+  }
   if (typeof flags.music === 'string') {
     const music = flags.music.trim();
     if (!music) throw new Error('The --music value cannot be empty.');
@@ -290,6 +307,7 @@ function usage() {
     '  --image-asset <https-url>   uploaded screenshot to place in the video (repeat per image)',
     '  --music <track-name|url|none>',
     '  --music-volume <0-1>',
+    '  --background-motif <motif>   none|corner_glow|side_light|orbit_ring|grid_field|split_gradient',
   ].join('\n');
 }
 
