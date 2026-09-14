@@ -1,8 +1,52 @@
-# Angles Video Skills
+# Angles Video
 
-Turn a software repository, a product page, or a screen-recorded demo into a launch-ready Angles video without leaving Codex or Claude Code.
+Turn a product page, a software repository, or a screen-recorded demo into a launch-ready Angles video.
 
-Two Skills share one client:
+## Command line
+
+One URL in, three selling angles out. Pick the one worth rendering:
+
+```bash
+npx angles-video https://yourproduct.com
+```
+
+```text
+  Reading yourproduct.com… ✓
+  MyApp — Freelancers who invoice clients
+  2 screenshots found on the page
+
+  3 angles:
+  1) Before/After — "Stop chasing invoices for weeks"        Bento Grid
+  2) Use Case     — "Send your first invoice in 60 seconds"  Screen Demo
+  3) Clarity      — "Invoicing, minus the spreadsheet"       Dynamic
+
+  Rendering spends 1 video from your allowance.
+  Pick one (1-3), 'a' for all 3, or 'q' to quit:
+```
+
+Angles reads the page, writes the brief from it, and reuses any screenshots it
+finds. Nothing renders until an angle is chosen — and in a pipe or a CI job,
+where no one can answer, nothing renders at all unless `--concept` or `--all`
+names one.
+
+| Option | |
+| --- | --- |
+| `--concept <1-3>` | render this angle without asking |
+| `--all` | render every angle (spends one video each) |
+| `--audience <who>` | who the video is for, when the page is vague |
+| `--product-name <name>` | override the name read off the page |
+| `--template <id>` | generate against a specific template |
+| `--portrait` | 9:16 instead of landscape |
+| `--no-images` | ignore screenshots found on the page |
+| `--json` | print the finished video as JSON |
+
+Needs `ANGLES_API_KEY` — [create one here](https://angles.video/login?returnUrl=/developer-api),
+then `export ANGLES_API_KEY=angles_sk_…`.
+
+## Agent Skills
+
+Inside Codex or Claude Code, two Skills share the same client and let the agent
+write the brief from the repository it is already working in:
 
 | Skill | Use it when |
 | --- | --- |
@@ -198,11 +242,24 @@ Render retries use a stable idempotency key, so retrying a transient request doe
 - An Angles account and API key
 - An available video allowance when you choose to render
 
-Run the client tests:
+Run the tests:
 
 ```bash
-node --test tests/client.test.mjs
+npm test
 ```
+
+### Changing the client
+
+Each Skill is installed from its own directory URL, so it has to ship the client
+rather than import a shared one. `src/` holds the originals — `src/client.mjs`
+and `src/api.md` — and the Skill copies are generated:
+
+```bash
+npm run sync-client
+```
+
+The CLI imports `src/client.mjs` directly. A Skill copy edited by hand fails the
+test suite rather than shipping a client the CLI and the Skills disagree about.
 
 ## Links
 

@@ -1,0 +1,307 @@
+#!/usr/bin/env node
+
+/**
+ * `npx angles-video <url>` — a product page in, a launch video out.
+ *
+ * The Skills in this repository hand the JSON steps to a coding agent, which
+ * writes the brief and reads the results back. Nobody is doing that here, so
+ * this command trades flags for a conversation: it reads the page, shows what
+ * each angle would say, and renders only the one that is chosen.
+ */
+
+import { createInterface } from 'node:readline/promises';
+import { stdin, stdout } from 'node:process';
+import { request } from '../../src/client.mjs';
+
+// Overridable so the test suite does not spend five seconds per poll.
+const POLL_INTERVAL_MS = Number(process.env.ANGLES_POLL_INTERVAL_MS) || 5000;
+/** Long enough for the slowest template; past this the render is the server's problem, not ours. */
+const POLL_TIMEOUT_MS = 15 * 60 * 1000;
+const SIGN_UP_URL = 'https://angles.video/login?returnUrl=/developer-api';
+const PROJECTS_URL = 'https://angles.video/projects';
+
+const ESC = '[';
+const isTty = Boolean(stdout.isTTY);
+const paint = (code, text) => (isTty ? `${ESC}${code}m${text}${ESC}0m` : text);
+const style = {
+  dim: text => paint('2', text),
+  bold: text => paint('1', text),
+  green: text => paint('32', text),
+  red: text => paint('31', text),
+};
+
+function parseArgs(argv) {
+  const flags = {};
+  const positional = [];
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token.startsWith('--')) {
+      positional.push(token);
+      continue;
+    }
+    const name = token.slice(2);
+    const next = argv[index + 1];
+    if (!next || next.startsWith('--')) {
+      flags[name] = true;
+      continue;
+    }
+    flags[name] = next;
+    index += 1;
+  }
+  return { flags, positional };
+}
+
+function usage() {
+  return [
+    '',
+    `  ${style.bold('angles-video')} — turn a product page into a launch video`,
+    '',
+    '  Usage:',
+    '    npx angles-video <url>',
+    '',
+    '  Options:',
+    '    --concept <1-3>      render this angle without asking',
+    '    --all                render every angle (spends one video each)',
+    '    --audience <who>     who the video is for, when the page is vague',
+    '    --product-name <n>   override the name read off the page',
+    '    --template <id>      generate against a specific template',
+    '    --portrait           9:16 instead of landscape',
+    '    --no-images          ignore screenshots found on the page',
+    '    --json               print the finished video as JSON',
+    '    --help               show this message',
+    '',
+    `  Needs ${style.bold('ANGLES_API_KEY')}. Create one at ${SIGN_UP_URL}`,
+    '',
+  ].join('\n');
+}
+
+/** `before_after` reads as a column of code; `Before/After` reads as an angle. */
+function lensLabel(lens) {
+  if (!lens) return 'Angle';
+  if (lens === 'before_after') return 'Before/After';
+  return lens
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+function truncate(text, limit) {
+  const value = (text || '').replace(/\s+/g, ' ').trim();
+  if (value.length <= limit) return value;
+  return `${value.slice(0, limit - 1)}…`;
+}
+
+function say(line = '') {
+  stdout.write(`${line}\n`);
+}
+
+/**
+ * The concept list, aligned so the angles can be compared down a column rather
+ * than read as three paragraphs. Width is measured on the unstyled text: the
+ * colour codes are zero-width on screen but not to `padEnd`.
+ */
+function printConcepts(concepts) {
+  const rows = concepts.map((concept, index) => ({
+    number: index + 1,
+    lens: lensLabel(concept.creativeLens),
+    hook: `"${truncate(concept.hook || concept.sellingAngle, 46)}"`,
+    template: concept.recommendedTemplates?.[0]?.name || 'Dynamic',
+  }));
+  const lensWidth = Math.max(...rows.map(row => row.lens.length));
+  const hookWidth = Math.max(...rows.map(row => row.hook.length));
+
+  say();
+  say(`  ${style.bold(`${concepts.length} angles:`)}`);
+  for (const row of rows) {
+    say(
+      `  ${row.number}) ${row.lens.padEnd(lensWidth)} — ` +
+        `${row.hook.padEnd(hookWidth)}  ${style.dim(row.template)}`
+    );
+  }
+}
+
+async function askForConcept(concepts) {
+  const rl = createInterface({ input: stdin, output: stdout });
+  try {
+    for (;;) {
+      const answer = (
+        await rl.question(
+          `\n  ${style.dim('Rendering spends 1 video from your allowance.')}\n` +
+            `  Pick one (1-${concepts.length}), 'a' for all ${concepts.length}, or 'q' to quit: `
+        )
+      )
+        .trim()
+        .toLowerCase();
+
+      if (answer === 'q' || answer === '') return [];
+      if (answer === 'a') return concepts;
+      const index = Number(answer);
+      if (Number.isInteger(index) && index >= 1 && index <= concepts.length) {
+        return [concepts[index - 1]];
+      }
+      say(style.red(`  Not an option: ${answer}`));
+    }
+  } finally {
+    rl.close();
+  }
+}
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Renders are dispatched and then run in the background, so the response to a
+ * render says "rendering", not "rendered". Polling is what turns that into a
+ * file the caller can open.
+ */
+async function waitForRender(videoId, onTick) {
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    await sleep(POLL_INTERVAL_MS);
+    const video = await request(`/videos/${encodeURIComponent(videoId)}`);
+    if (video.status !== 'rendering') return video;
+    onTick?.();
+  }
+  throw new Error(
+    `The render is still running after ${POLL_TIMEOUT_MS / 60000} minutes. ` +
+      `It has not been lost — check it at ${PROJECTS_URL}.`
+  );
+}
+
+function elapsed(startedAt) {
+  const seconds = Math.round((Date.now() - startedAt) / 1000);
+  return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m${seconds % 60}s`;
+}
+
+async function renderConcept(concept, { productImages }) {
+  const template = concept.recommendedTemplates?.[0];
+  if (!template) {
+    throw new Error(`No template was recommended for "${concept.title}".`);
+  }
+
+  const startedAt = Date.now();
+  say();
+  say(`  ${style.bold(lensLabel(concept.creativeLens))} ${style.dim(`· ${template.name}`)}`);
+  stdout.write(`  Rendering… ${style.dim('(a minute or two)')}`);
+
+  await request(`/videos/${encodeURIComponent(concept.videoId)}/render`, {
+    method: 'POST',
+    // Stable for this video and template, so an interrupted run that is retried
+    // is treated as the same render rather than charged a second time.
+    headers: { 'Idempotency-Key': `cli-${concept.videoId}-${template.id}` },
+    body: JSON.stringify({
+      templateId: template.id,
+      confirmed: true,
+      ...(productImages.length ? { productImages } : {}),
+    }),
+  });
+
+  const finished = await waitForRender(concept.videoId, () => {
+    if (isTty) stdout.write('.');
+  });
+  say();
+
+  if (finished.status === 'failed') {
+    throw new Error(`The render failed. Open ${finished.editUrl} to see why.`);
+  }
+  say(`  ${style.green('✓')} ${finished.videoUrl} ${style.dim(elapsed(startedAt))}`);
+  return finished;
+}
+
+async function main() {
+  const { flags, positional } = parseArgs(process.argv.slice(2));
+  if (flags.help || positional.length === 0) {
+    say(usage());
+    process.exitCode = flags.help ? 0 : 1;
+    return;
+  }
+
+  if (!process.env.ANGLES_API_KEY?.trim()) {
+    throw new Error(
+      `ANGLES_API_KEY is not set. Create a key at ${SIGN_UP_URL}, then:\n\n` +
+        '    export ANGLES_API_KEY=angles_sk_…'
+    );
+  }
+
+  const input = positional[0];
+  let url;
+  try {
+    url = new URL(input.includes('://') ? input : `https://${input}`);
+  } catch {
+    throw new Error(`"${input}" is not a URL.`);
+  }
+
+  say();
+  stdout.write(`  Reading ${style.bold(url.hostname)}… `);
+  const result = await request('/concepts/from-url', {
+    method: 'POST',
+    body: JSON.stringify({
+      url: url.toString(),
+      ...(typeof flags.audience === 'string' ? { targetAudience: flags.audience } : {}),
+      ...(typeof flags['product-name'] === 'string' ? { productName: flags['product-name'] } : {}),
+      ...(typeof flags.template === 'string' ? { preferredTemplateId: flags.template } : {}),
+      ...(flags.portrait ? { aspectRatio: 'portrait' } : {}),
+    }),
+  });
+
+  const { concepts, source } = result;
+  say(style.green('✓'));
+  say(
+    `  ${style.bold(source.productName)} ${style.dim(`— ${truncate(source.targetAudience, 56)}`)}`
+  );
+  if (source.productImages.length) {
+    const count = source.productImages.length;
+    say(style.dim(`  ${count} screenshot${count === 1 ? '' : 's'} found on the page`));
+  }
+
+  printConcepts(concepts);
+
+  let chosen;
+  if (flags.all) {
+    chosen = concepts;
+  } else if (flags.concept !== undefined) {
+    const index = Number(flags.concept);
+    if (!Number.isInteger(index) || index < 1 || index > concepts.length) {
+      throw new Error(`--concept must be a number from 1 to ${concepts.length}.`);
+    }
+    chosen = [concepts[index - 1]];
+  } else if (!stdin.isTTY) {
+    // A pipe or a CI job cannot answer a prompt, and a render spends real money.
+    // Naming the angle is what makes that spend deliberate rather than default.
+    say();
+    say(
+      `  Not a terminal, so nothing was rendered. Re-run with ` +
+        `${style.bold('--concept <1-3>')} or ${style.bold('--all')}.`
+    );
+    say(style.dim(`  The concepts are saved: ${result.editUrl}`));
+    return;
+  } else {
+    chosen = await askForConcept(concepts);
+  }
+
+  if (chosen.length === 0) {
+    say(`\n  Nothing rendered. The concepts are saved: ${result.editUrl}`);
+    return;
+  }
+
+  const productImages = flags['no-images'] ? [] : source.productImages;
+  const finished = [];
+  for (const concept of chosen) {
+    finished.push(await renderConcept(concept, { productImages }));
+  }
+
+  if (flags.json) {
+    say();
+    say(JSON.stringify(finished.length === 1 ? finished[0] : finished, null, 2));
+  } else {
+    say();
+    say(style.dim(`  Edit or re-render: ${result.editUrl}`));
+  }
+}
+
+main().catch(error => {
+  say();
+  say(`  ${style.red('✗')} ${error.message}`);
+  if (error.hint) say(`\n  ${style.dim(error.hint)}`);
+  say();
+  process.exitCode = 1;
+});
