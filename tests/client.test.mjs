@@ -6,6 +6,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+import { SHARED_FILES } from '../scripts/sync-client.mjs';
 
 const clientPath = fileURLToPath(
   new URL('../skills/create-launch-video/scripts/angles.mjs', import.meta.url)
@@ -32,6 +33,26 @@ test('every Skill ships the same client and API reference', async () => {
         `${SKILLS_SHARING_THE_CLIENT[index + 1]}/${file} has drifted from ${SKILLS_SHARING_THE_CLIENT[0]}/${file}`
       );
     });
+  }
+});
+
+// The CLI imports `src/client.mjs` while the Skills carry copies of it, so
+// `src/` is where a change is made. A copy edited by hand fails here rather
+// than shipping a client the CLI and the Skills disagree about.
+test('every Skill copy matches its source in src/', async () => {
+  for (const [sharedPath, skillPath] of SHARED_FILES) {
+    const source = await readFile(fileURLToPath(new URL(`../${sharedPath}`, import.meta.url)), 'utf8');
+    for (const skill of SKILLS_SHARING_THE_CLIENT) {
+      const copy = await readFile(
+        fileURLToPath(new URL(`../skills/${skill}/${skillPath}`, import.meta.url)),
+        'utf8'
+      );
+      assert.equal(
+        copy,
+        source,
+        `skills/${skill}/${skillPath} is out of date with ${sharedPath} — run: npm run sync-client`
+      );
+    }
   }
 });
 

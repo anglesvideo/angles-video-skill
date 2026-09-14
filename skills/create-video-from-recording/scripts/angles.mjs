@@ -3,14 +3,15 @@
 import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { basename, extname } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const DEFAULT_BASE_URL = 'https://api.angles.video/api/developer/v1';
-const MUSIC_TRACKS = new Map([
+export const MUSIC_TRACKS = new Map([
   ['raising me higher', 'https://assets.mixkit.co/music/34/34.mp3'],
   ['motivating mornings', 'https://assets.mixkit.co/music/33/33.mp3'],
   ['a blue day', 'https://assets.mixkit.co/music/150/150.mp3'],
 ]);
-const BACKGROUND_MOTIFS = new Set([
+export const BACKGROUND_MOTIFS = new Set([
   'none',
   'corner_glow',
   'side_light',
@@ -19,7 +20,7 @@ const BACKGROUND_MOTIFS = new Set([
   'split_gradient',
 ]);
 
-const UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
+export const UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
 /** The types Angles accepts, keyed by the extension it reads them from. */
 const UPLOAD_MIME_TYPES = new Map([
   ['.jpg', 'image/jpeg'],
@@ -133,7 +134,7 @@ async function readJsonInput(flags) {
  * every rejected request into the same unhelpful "Bad Request Exception".
  * Validation failures arrive as one sentence per field; other errors as a string.
  */
-function errorTextFrom(body) {
+export function errorTextFrom(body) {
   const details = body?.details;
   const candidates = [typeof details === 'string' ? details : details?.message, body?.message];
   for (const candidate of candidates) {
@@ -159,7 +160,7 @@ function apiConfig() {
   };
 }
 
-async function request(path, options = {}) {
+export async function request(path, options = {}) {
   const { apiKey, baseUrl } = apiConfig();
   const response = await fetch(`${baseUrl}${path}`, {
     ...options,
@@ -203,7 +204,7 @@ function stableRenderKey(videoId, templateId) {
   return stableRenderKeyWithSettings(videoId, templateId, {});
 }
 
-function stableRenderKeyWithSettings(videoId, templateId, settings) {
+export function stableRenderKeyWithSettings(videoId, templateId, settings) {
   const suffix = Object.keys(settings).length ? `:${JSON.stringify(settings)}` : '';
   return `skill-${createHash('sha256')
     .update(`${videoId}:${templateId}${suffix}`)
@@ -263,7 +264,7 @@ function renderSettings(flags) {
  * between the user and an upload — but the ceiling is worth stating with the one
  * command that gets them under it.
  */
-async function uploadBody(path) {
+export async function uploadBody(path) {
   const extension = extname(path).toLowerCase();
   const mimeType = UPLOAD_MIME_TYPES.get(extension);
   if (!mimeType) {
@@ -296,6 +297,7 @@ function usage() {
   return [
     'Usage:',
     '  angles.mjs concepts --input <file|->',
+    '  angles.mjs from-url --url <https-url> [--product-name <name>] [--audience <who>]',
     '  angles.mjs templates [--video <video-id>]',
     '  angles.mjs upload --file <path>',
     '  angles.mjs preview --video <video-id> --template <template-id> [asset and music options]',
@@ -319,6 +321,18 @@ async function main() {
     result = await request('/concepts', {
       method: 'POST',
       body: JSON.stringify(await readJsonInput(flags)),
+    });
+  } else if (command === 'from-url') {
+    result = await request('/concepts/from-url', {
+      method: 'POST',
+      body: JSON.stringify({
+        url: requireString(flags, 'url'),
+        ...(typeof flags['product-name'] === 'string'
+          ? { productName: flags['product-name'] }
+          : {}),
+        ...(typeof flags.audience === 'string' ? { targetAudience: flags.audience } : {}),
+        ...(typeof flags.template === 'string' ? { preferredTemplateId: flags.template } : {}),
+      }),
     });
   } else if (command === 'templates') {
     const query = typeof flags.video === 'string'
@@ -365,14 +379,21 @@ async function main() {
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
-main().catch(error => {
-  const payload = {
-    error: error.message,
-    ...(error.status ? { status: error.status } : {}),
-    ...(error.code ? { code: error.code } : {}),
-    ...(error.hint ? { hint: error.hint } : {}),
-    ...(error.details ? { details: error.details } : {}),
-  };
-  process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
-  process.exitCode = 1;
-});
+function runAsCommand() {
+  main().catch(error => {
+    const payload = {
+      error: error.message,
+      ...(error.status ? { status: error.status } : {}),
+      ...(error.code ? { code: error.code } : {}),
+      ...(error.hint ? { hint: error.hint } : {}),
+      ...(error.details ? { details: error.details } : {}),
+    };
+    process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
+    process.exitCode = 1;
+  });
+}
+
+// Imported by the CLI this file is a library; run only when it is the entry point.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  runAsCommand();
+}
