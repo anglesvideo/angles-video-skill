@@ -1,6 +1,6 @@
 {
   "name": "angles-video",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Turn a product page into a launch video from the command line. npx angles-video <url>",
   "keywords": [
     "url-to-video",
