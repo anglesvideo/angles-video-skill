@@ -46,6 +46,16 @@ Whichever source it came from, produce a structured summary with:
 - `notableFeatures`
 - `repositoryName` and public `repositoryUrl` when available — omit both when the source was a product page rather than a repository
 
+Add the product's real technical surface when the source shows one:
+
+- `codeSample`: one command or short snippet a user would actually run, copied exactly from the README, docs, or `package.json` scripts — for example the install line or the smallest working invocation. Up to 600 characters.
+- `codeLanguage`: what `codeSample` is written in, such as `bash`, `ts`, or `python`.
+- `runSteps`: up to six real steps of running it, in order, each a short phrase.
+
+Developer templates draw a terminal, a code window, and a step list, and Angles will not write their contents — an invented command is a command that does not run. Supplying these is what fills those scenes; leaving them out renders visible `[DRAFT]` and `// Add your real example` placeholders into the finished video.
+
+Copy them, never compose them. If the repository has no command a user would run, or the page is marketing copy with no real surface in it, omit all three: the placeholder at least says it needs filling in, while a plausible-looking command that fails is worse than nothing. Never put credentials, private endpoints, internal hostnames, or anything from `.env*` in a sample — it is printed on screen in a video the user may publish.
+
 Add two more when the user has said what they want:
 
 - `aspectRatio`: `landscape` or `portrait`. Set this field — describing the orientation in `launchGoal` or any other prose does not control it.

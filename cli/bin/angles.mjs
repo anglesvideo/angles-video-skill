@@ -10,6 +10,7 @@
  */
 
 import { createInterface } from 'node:readline/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { stdin, stdout } from 'node:process';
 import { GATEWAY_STATUSES, request } from '../../src/client.mjs';
 
@@ -68,6 +69,9 @@ function usage() {
     '    --all                render every angle (spends one video each)',
     '    --audience <who>     who the video is for, when the page is vague',
     '    --product-name <n>   override the name read off the page',
+    '    --code <command>     the real command to show on screen',
+    '    --steps <a,b,c>      the real steps of running it, in order',
+    '    --no-code            do not read a command from ./README',
     '    --template <id>      generate against a specific template',
     '    --portrait           9:16 instead of landscape',
     '    --no-images          ignore screenshots found on the page',
@@ -92,6 +96,54 @@ function lensLabel(lens) {
 /** Whether this template puts uploaded screenshots in the finished video. */
 function usesImages(template) {
   return Boolean(template?.media?.acceptsImages);
+}
+
+/** Shells whose first line is a command someone runs, not a program to read. */
+const SHELL_LANGUAGES = new Set(['bash', 'sh', 'shell', 'console', 'zsh', 'terminal', '']);
+const MAX_CODE_SAMPLE = 600;
+
+/**
+ * The product's real command, read from the README next to where this runs.
+ *
+ * Developer templates draw a terminal and Angles will not invent what goes in
+ * it, so without a real command those scenes render a visible placeholder. The
+ * README's first shell block is where a working invocation almost always is.
+ *
+ * Only a fenced block counts. Prose that looks like a command is usually a
+ * description of one, and a command that does not run is worse in a video than
+ * the placeholder, which at least says it needs filling in.
+ */
+async function readCommandFromReadme(directory) {
+  let entries;
+  try {
+    entries = await readdir(directory);
+  } catch {
+    return null;
+  }
+  const name = entries.find(entry => /^readme(\.md|\.markdown|\.txt)?$/i.test(entry));
+  if (!name) return null;
+
+  let text;
+  try {
+    text = await readFile(`${directory}/${name}`, 'utf8');
+  } catch {
+    return null;
+  }
+
+  for (const match of text.matchAll(/^```([\w-]*)\r?\n([\s\S]*?)^```/gm)) {
+    const language = match[1].toLowerCase();
+    if (!SHELL_LANGUAGES.has(language)) continue;
+    const line = match[2]
+      .split('\n')
+      .map(entry => entry.trim())
+      .find(entry => entry && !entry.startsWith('#') && !entry.startsWith('//'));
+    // A leading "$" is prompt decoration in a transcript, not part of the command.
+    const command = line?.replace(/^\$\s*/, '');
+    if (command && command.length <= MAX_CODE_SAMPLE) {
+      return { command, source: name };
+    }
+  }
+  return null;
 }
 
 function truncate(text, limit) {
@@ -276,6 +328,42 @@ function printSceneWarnings(warnings) {
   }
 }
 
+/**
+ * What the CLI can tell Angles about the product's real surface.
+ *
+ * `--code` wins because it was typed for this video. Otherwise the README in
+ * the working directory is read, which is right where someone running this
+ * inside their own project keeps the command they would hand a new user.
+ * Whatever is found is printed before anything is generated: it goes on screen
+ * in the video, so it should not arrive as a surprise.
+ */
+async function resolveMaterial(flags) {
+  const steps =
+    typeof flags.steps === 'string'
+      ? flags.steps
+          .split(',')
+          .map(step => step.trim())
+          .filter(Boolean)
+          .slice(0, 6)
+      : [];
+
+  if (typeof flags.code === 'string' && flags.code.trim()) {
+    return { fields: { codeSample: flags.code.trim(), ...(steps.length ? { runSteps: steps } : {}) } };
+  }
+  if (flags['no-code']) {
+    return { fields: steps.length ? { runSteps: steps } : {} };
+  }
+
+  const found = await readCommandFromReadme(process.cwd());
+  if (!found) {
+    return { fields: steps.length ? { runSteps: steps } : {} };
+  }
+  return {
+    found,
+    fields: { codeSample: found.command, ...(steps.length ? { runSteps: steps } : {}) },
+  };
+}
+
 async function main() {
   const { flags, positional } = parseArgs(process.argv.slice(2));
   if (flags.help || positional.length === 0) {
@@ -299,6 +387,10 @@ async function main() {
     throw new Error(`"${input}" is not a URL.`);
   }
 
+  // A landing page never carries a working command, and the templates that draw
+  // a terminal will not invent one — so this is the only chance to supply it.
+  const material = await resolveMaterial(flags);
+
   say();
   stdout.write(`  Reading ${style.bold(url.hostname)}… `);
   const result = await request('/concepts/from-url', {
@@ -309,6 +401,7 @@ async function main() {
       ...(typeof flags['product-name'] === 'string' ? { productName: flags['product-name'] } : {}),
       ...(typeof flags.template === 'string' ? { preferredTemplateId: flags.template } : {}),
       ...(flags.portrait ? { aspectRatio: 'portrait' } : {}),
+      ...material.fields,
     }),
   });
 
@@ -317,6 +410,14 @@ async function main() {
   say(
     `  ${style.bold(source.productName)} ${style.dim(`— ${truncate(source.targetAudience, 56)}`)}`
   );
+  if (material.found) {
+    say(
+      style.dim(
+        `  Using this command from ${material.found.source}: ${truncate(material.found.command, 52)}`
+      )
+    );
+  }
+
   const screenshotCount = flags['no-images'] ? 0 : source.productImages.length;
   if (screenshotCount) {
     const usable = concepts.some(concept => usesImages(concept.recommendedTemplates?.[0]));

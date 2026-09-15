@@ -29,12 +29,22 @@ finds. Nothing renders until an angle is chosen — and in a pipe or a CI job,
 where no one can answer, nothing renders at all unless `--concept` or `--all`
 names one.
 
+Templates that draw a terminal need a command that actually runs, and Angles
+will not invent one — an invented command is a command that fails in front of
+your audience. Run this from your project and the first shell block in the
+README is used, printed before anything is generated so it is never a surprise;
+`--code` overrides it and `--no-code` turns it off. Without a command those
+scenes render a visible `[DRAFT]` placeholder, and the CLI says which ones did.
+
 | Option | |
 | --- | --- |
 | `--concept <1-3>` | render this angle without asking |
 | `--all` | render every angle (spends one video each) |
 | `--audience <who>` | who the video is for, when the page is vague |
 | `--product-name <name>` | override the name read off the page |
+| `--code <command>` | the real command to show on screen (defaults to the first shell block in `./README`) |
+| `--steps <a,b,c>` | the real steps of running it, in order |
+| `--no-code` | do not read a command from `./README` |
 | `--template <id>` | generate against a specific template |
 | `--portrait` | 9:16 instead of landscape |
 | `--no-images` | ignore screenshots found on the page |

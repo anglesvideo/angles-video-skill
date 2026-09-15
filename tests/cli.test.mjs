@@ -3,6 +3,9 @@ import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
+import { mkdtemp, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
 const cliPath = fileURLToPath(new URL('../cli/bin/angles.mjs', import.meta.url));
@@ -47,8 +50,9 @@ const FROM_URL_RESPONSE = {
   },
 };
 
-async function runCli(args, { baseUrl, env = {} } = {}) {
+async function runCli(args, { baseUrl, env = {}, cwd } = {}) {
   const child = spawn(process.execPath, [cliPath, ...args], {
+    ...(cwd ? { cwd } : {}),
     env: {
       ...process.env,
       ANGLES_API_KEY: testKey,
@@ -344,6 +348,102 @@ test('stays quiet when the renderer changed nothing', async () => {
 
     assert.equal(result.stdout.includes('placeholder text'), false);
     assert.equal(result.stdout.includes('⚠'), false);
+  });
+});
+
+// Developer templates draw a terminal and Angles will not invent what goes in
+// it, so a real command is the difference between a finished scene and a
+// visible "// Add your real example" placeholder in the delivered video.
+test('sends the command given on the command line', async () => {
+  const { handler, calls } = anglesServer();
+  await withServer(handler, async baseUrl => {
+    await runCli(['https://myapp.com', '--concept', '1', '--code', '  npx myapp init  '], {
+      baseUrl,
+    });
+    assert.equal(calls.fromUrl[0].codeSample, 'npx myapp init');
+  });
+});
+
+test('reads the command out of the README beside it', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'angles-readme-'));
+  await writeFile(
+    join(dir, 'README.md'),
+    [
+      '# MyApp',
+      '',
+      'Some prose that mentions running myapp but is not a command.',
+      '',
+      '```json',
+      '{ "not": "a command" }',
+      '```',
+      '',
+      '```bash',
+      '# install it first',
+      '$ npx myapp start --port 3000',
+      'npx myapp other',
+      '```',
+    ].join('\n')
+  );
+
+  const { handler, calls } = anglesServer();
+  await withServer(handler, async baseUrl => {
+    const result = await runCli(['https://myapp.com', '--concept', '1'], { baseUrl, cwd: dir });
+
+    // The json block is skipped, the comment line is skipped, and the shell
+    // prompt "$ " is decoration rather than part of the command.
+    assert.equal(calls.fromUrl[0].codeSample, 'npx myapp start --port 3000');
+    // It goes on screen in the video, so it is shown before anything is made.
+    assert.match(result.stdout, /Using this command from README\.md/);
+    assert.match(result.stdout, /npx myapp start/);
+  });
+});
+
+test('prefers the typed command over the README', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'angles-readme-'));
+  await writeFile(join(dir, 'README.md'), '```bash\nnpx from-readme\n```');
+
+  const { handler, calls } = anglesServer();
+  await withServer(handler, async baseUrl => {
+    await runCli(['https://myapp.com', '--concept', '1', '--code', 'npx typed'], {
+      baseUrl,
+      cwd: dir,
+    });
+    assert.equal(calls.fromUrl[0].codeSample, 'npx typed');
+  });
+});
+
+test('reads no README when told not to', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'angles-readme-'));
+  await writeFile(join(dir, 'README.md'), '```bash\nnpx from-readme\n```');
+
+  const { handler, calls } = anglesServer();
+  await withServer(handler, async baseUrl => {
+    const result = await runCli(['https://myapp.com', '--concept', '1', '--no-code'], {
+      baseUrl,
+      cwd: dir,
+    });
+    assert.equal('codeSample' in calls.fromUrl[0], false);
+    assert.equal(result.stdout.includes('Using this command'), false);
+  });
+});
+
+test('sends nothing when there is no README to read', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'angles-empty-'));
+  const { handler, calls } = anglesServer();
+  await withServer(handler, async baseUrl => {
+    await runCli(['https://myapp.com', '--concept', '1'], { baseUrl, cwd: dir });
+    assert.equal('codeSample' in calls.fromUrl[0], false);
+  });
+});
+
+test('passes the run steps in the order they were given', async () => {
+  const { handler, calls } = anglesServer();
+  await withServer(handler, async baseUrl => {
+    await runCli(
+      ['https://myapp.com', '--concept', '1', '--no-code', '--steps', 'Point it at a page, ,Pick an angle,Export'],
+      { baseUrl }
+    );
+    assert.deepEqual(calls.fromUrl[0].runSteps, ['Point it at a page', 'Pick an angle', 'Export']);
   });
 });
 
