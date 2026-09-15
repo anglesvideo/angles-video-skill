@@ -39,7 +39,7 @@ const UPLOAD_MIME_TYPES = new Map([
  * page rather than anything from Angles, so nothing else in it says whether
  * trying again is safe or what it would cost.
  */
-const GATEWAY_STATUSES = new Set([502, 504, 520, 522, 524]);
+export const GATEWAY_STATUSES = new Set([502, 504, 520, 522, 524]);
 const GATEWAY_HINT =
   'Angles did not answer in time. The request may still be completing on the server. ' +
   'Only render spends a video allowance, and a repeated render with the same idempotency key ' +

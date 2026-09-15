@@ -15,7 +15,7 @@ const CONCEPTS = [
     sellingAngle: 'Invoices that chase themselves',
     creativeLens: 'before_after',
     hook: 'Stop chasing invoices',
-    recommendedTemplates: [{ id: 'bento_grid', name: 'Bento Grid' }],
+    recommendedTemplates: [{ id: 'bento_grid', name: 'Bento Grid', media: { acceptsImages: false } }],
   },
   {
     videoId: 'video-2',
@@ -23,7 +23,7 @@ const CONCEPTS = [
     sellingAngle: 'From signup to paid in a minute',
     creativeLens: 'use_case',
     hook: 'Send your first invoice in 60 seconds',
-    recommendedTemplates: [{ id: 'screen_demo', name: 'Screen Demo' }],
+    recommendedTemplates: [{ id: 'screen_demo', name: 'Screen Demo', media: { acceptsImages: true } }],
   },
   {
     videoId: 'video-3',
@@ -31,7 +31,7 @@ const CONCEPTS = [
     sellingAngle: 'Clarity',
     creativeLens: 'clarity',
     hook: 'Invoicing, minus the spreadsheet',
-    recommendedTemplates: [{ id: 'dynamic', name: 'Dynamic' }],
+    recommendedTemplates: [{ id: 'dynamic', name: 'Dynamic', media: { acceptsImages: false } }],
   },
 ];
 
@@ -76,7 +76,7 @@ async function runCli(args, { baseUrl, env = {} } = {}) {
  * how many polls report "rendering" before the video is finished, so the poll
  * loop is exercised rather than skipped.
  */
-function anglesServer({ rendersBeforeDone = 1 } = {}) {
+function anglesServer({ rendersBeforeDone = 1, renderGatewayError = false, finalStatus = 'rendered' } = {}) {
   const calls = { fromUrl: [], render: [], polls: 0 };
   let remaining = rendersBeforeDone;
 
@@ -97,6 +97,13 @@ function anglesServer({ rendersBeforeDone = 1 } = {}) {
         idempotencyKey: request.headers['idempotency-key'],
         body: JSON.parse(body || '{}'),
       });
+      if (renderGatewayError) {
+        // What a gateway actually returns mid-deploy: an HTML page, not JSON.
+        response.statusCode = 502;
+        response.setHeader('content-type', 'text/html');
+        response.end('<html><head><title>502 Bad Gateway</title></head><body>502</body></html>');
+        return;
+      }
       response.end(JSON.stringify({ id: renderMatch[1], status: 'rendering' }));
       return;
     }
@@ -105,11 +112,12 @@ function anglesServer({ rendersBeforeDone = 1 } = {}) {
       calls.polls += 1;
       const done = remaining <= 0;
       remaining -= 1;
+      const status = done ? finalStatus : 'rendering';
       response.end(
         JSON.stringify({
           id: videoMatch[1],
-          status: done ? 'rendered' : 'rendering',
-          videoUrl: done ? `https://cdn.test/${videoMatch[1]}.mp4` : null,
+          status,
+          videoUrl: status === 'rendered' ? `https://cdn.test/${videoMatch[1]}.mp4` : null,
           editUrl: `https://angles.video/projects/project-1/videos/${videoMatch[1]}`,
         })
       );
@@ -184,16 +192,43 @@ test('renders the angle named on the command line', async () => {
 test('carries the screenshots it found on the page into the render', async () => {
   const { handler, calls } = anglesServer();
   await withServer(handler, async baseUrl => {
-    await runCli(['https://myapp.com', '--concept', '1'], { baseUrl });
+    // Angle 2 renders with Screen Demo, which routes uploads at render time.
+    await runCli(['https://myapp.com', '--concept', '2'], { baseUrl });
     assert.deepEqual(calls.render[0].body.productImages, ['https://cdn.test/shot-1.png']);
+  });
+});
+
+// Found in a real run: the page had 8 screenshots and the recommended template
+// had no image slots, so the render was rejected outright with
+// "Terminal Workflow does not have image slots." Sending images a template
+// cannot route does not degrade — it fails the whole render.
+test('never sends screenshots to a template that refuses them', async () => {
+  const { handler, calls } = anglesServer();
+  await withServer(handler, async baseUrl => {
+    const result = await runCli(['https://myapp.com', '--concept', '1'], { baseUrl });
+
+    assert.equal(result.code, 0);
+    assert.equal('productImages' in calls.render[0].body, false);
+  });
+});
+
+test('says so when no offered template would use the screenshots', async () => {
+  const { handler } = anglesServer();
+  await withServer(handler, async baseUrl => {
+    const result = await runCli(['https://myapp.com', '--concept', '1'], { baseUrl });
+    // Angle 2 does use them, so the caveat must not appear.
+    assert.equal(result.stdout.includes('none of these templates use uploads'), false);
+    assert.match(result.stdout, /Screen Demo · uses 1/);
+    assert.match(result.stdout, /1 screenshot found on the page/);
   });
 });
 
 test('leaves the screenshots out when asked to', async () => {
   const { handler, calls } = anglesServer();
   await withServer(handler, async baseUrl => {
-    await runCli(['https://myapp.com', '--concept', '1', '--no-images'], { baseUrl });
+    const result = await runCli(['https://myapp.com', '--concept', '2', '--no-images'], { baseUrl });
     assert.equal('productImages' in calls.render[0].body, false);
+    assert.equal(result.stdout.includes('screenshot'), false);
   });
 });
 
@@ -222,6 +257,34 @@ test('renders every angle only when every angle was asked for', async () => {
       calls.render.map(call => call.videoId),
       ['video-1', 'video-2', 'video-3']
     );
+  });
+});
+
+// Found in a real run: a deploy restarted the server mid-render and the gateway
+// returned 502. The answer was lost, not the render — and the video id is in
+// hand, so the state is one poll away. Giving up would abandon a video the
+// account may already be paying for.
+test('polls instead of giving up when the gateway drops the render reply', async () => {
+  const { handler, calls } = anglesServer({ renderGatewayError: true });
+  await withServer(handler, async baseUrl => {
+    const result = await runCli(['https://myapp.com', '--concept', '2'], { baseUrl });
+
+    assert.equal(result.code, 0);
+    assert.equal(calls.render.length, 1);
+    assert.match(result.stdout, /checking whether the render started/);
+    assert.match(result.stdout, /https:\/\/cdn\.test\/video-2\.mp4/);
+  });
+});
+
+test('says nothing was spent when the dropped render never started', async () => {
+  const { handler } = anglesServer({ renderGatewayError: true, finalStatus: 'planned' });
+  await withServer(handler, async baseUrl => {
+    const result = await runCli(['https://myapp.com', '--concept', '2'], { baseUrl });
+
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /never started/);
+    assert.match(result.stdout, /Nothing was spent/);
+    assert.match(result.stdout, /video-2/);
   });
 });
 

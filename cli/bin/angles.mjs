@@ -11,7 +11,7 @@
 
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
-import { request } from '../../src/client.mjs';
+import { GATEWAY_STATUSES, request } from '../../src/client.mjs';
 
 // Overridable so the test suite does not spend five seconds per poll.
 const POLL_INTERVAL_MS = Number(process.env.ANGLES_POLL_INTERVAL_MS) || 5000;
@@ -85,6 +85,11 @@ function lensLabel(lens) {
     .join(' ');
 }
 
+/** Whether this template puts uploaded screenshots in the finished video. */
+function usesImages(template) {
+  return Boolean(template?.media?.acceptsImages);
+}
+
 function truncate(text, limit) {
   const value = (text || '').replace(/\s+/g, ' ').trim();
   if (value.length <= limit) return value;
@@ -100,13 +105,21 @@ function say(line = '') {
  * than read as three paragraphs. Width is measured on the unstyled text: the
  * colour codes are zero-width on screen but not to `padEnd`.
  */
-function printConcepts(concepts) {
-  const rows = concepts.map((concept, index) => ({
-    number: index + 1,
-    lens: lensLabel(concept.creativeLens),
-    hook: `"${truncate(concept.hook || concept.sellingAngle, 46)}"`,
-    template: concept.recommendedTemplates?.[0]?.name || 'Dynamic',
-  }));
+function printConcepts(concepts, screenshotCount = 0) {
+  const rows = concepts.map((concept, index) => {
+    const template = concept.recommendedTemplates?.[0];
+    return {
+      number: index + 1,
+      lens: lensLabel(concept.creativeLens),
+      hook: `"${truncate(concept.hook || concept.sellingAngle, 46)}"`,
+      // Saying a template will use the screenshots is the only thing that makes
+      // "8 screenshots found" actionable: most templates draw their own visuals
+      // and ignore uploads entirely.
+      template:
+        template?.name +
+        (screenshotCount && usesImages(template) ? ` · uses ${screenshotCount}` : ''),
+    };
+  });
   const lensWidth = Math.max(...rows.map(row => row.lens.length));
   const hookWidth = Math.max(...rows.map(row => row.hook.length));
 
@@ -183,17 +196,34 @@ async function renderConcept(concept, { productImages }) {
   say(`  ${style.bold(lensLabel(concept.creativeLens))} ${style.dim(`· ${template.name}`)}`);
   stdout.write(`  Rendering… ${style.dim('(a minute or two)')}`);
 
-  await request(`/videos/${encodeURIComponent(concept.videoId)}/render`, {
-    method: 'POST',
-    // Stable for this video and template, so an interrupted run that is retried
-    // is treated as the same render rather than charged a second time.
-    headers: { 'Idempotency-Key': `cli-${concept.videoId}-${template.id}` },
-    body: JSON.stringify({
-      templateId: template.id,
-      confirmed: true,
-      ...(productImages.length ? { productImages } : {}),
-    }),
-  });
+  // Only templates that route uploads at render time may be sent images: the
+  // rest reject the request outright. `media` is derived from that routing,
+  // while `imageSupport` describes editor slots — several templates publish
+  // slots they never fill from an upload, so filtering on it sends images to
+  // a render that refuses them.
+  const images = usesImages(template) ? productImages : [];
+
+  try {
+    await request(`/videos/${encodeURIComponent(concept.videoId)}/render`, {
+      method: 'POST',
+      // Stable for this video and template, so an interrupted run that is retried
+      // is treated as the same render rather than charged a second time.
+      headers: { 'Idempotency-Key': `cli-${concept.videoId}-${template.id}` },
+      body: JSON.stringify({
+        templateId: template.id,
+        confirmed: true,
+        ...(images.length ? { productImages: images } : {}),
+      }),
+    });
+  } catch (error) {
+    // A gateway timeout says the answer was lost, not that the render was. The
+    // usual cause is a deploy restarting the server mid-request, and the render
+    // is often already running. We hold the video id, so the state is one poll
+    // away — giving up here would abandon a video the account may be paying for.
+    if (!GATEWAY_STATUSES.has(error.status)) throw error;
+    say();
+    say(style.dim('  Angles did not answer in time; checking whether the render started…'));
+  }
 
   const finished = await waitForRender(concept.videoId, () => {
     if (isTty) stdout.write('.');
@@ -202,6 +232,14 @@ async function renderConcept(concept, { productImages }) {
 
   if (finished.status === 'failed') {
     throw new Error(`The render failed. Open ${finished.editUrl} to see why.`);
+  }
+  // Still unstarted: the request never landed, so nothing was spent and the
+  // same command is safe to run again.
+  if (finished.status !== 'rendered' || !finished.videoUrl) {
+    throw new Error(
+      `The render never started (${concept.videoId} is "${finished.status}"). ` +
+        `Nothing was spent — run the same command again. ${finished.editUrl}`
+    );
   }
   say(`  ${style.green('✓')} ${finished.videoUrl} ${style.dim(elapsed(startedAt))}`);
   return finished;
@@ -248,12 +286,18 @@ async function main() {
   say(
     `  ${style.bold(source.productName)} ${style.dim(`— ${truncate(source.targetAudience, 56)}`)}`
   );
-  if (source.productImages.length) {
-    const count = source.productImages.length;
-    say(style.dim(`  ${count} screenshot${count === 1 ? '' : 's'} found on the page`));
+  const screenshotCount = flags['no-images'] ? 0 : source.productImages.length;
+  if (screenshotCount) {
+    const usable = concepts.some(concept => usesImages(concept.recommendedTemplates?.[0]));
+    say(
+      style.dim(
+        `  ${screenshotCount} screenshot${screenshotCount === 1 ? '' : 's'} found on the page` +
+          (usable ? '' : ' — none of these templates use uploads')
+      )
+    );
   }
 
-  printConcepts(concepts);
+  printConcepts(concepts, screenshotCount);
 
   let chosen;
   if (flags.all) {
