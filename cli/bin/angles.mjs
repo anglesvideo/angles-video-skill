@@ -28,7 +28,11 @@ const style = {
   bold: text => paint('1', text),
   green: text => paint('32', text),
   red: text => paint('31', text),
+  yellow: text => paint('33', text),
 };
+
+/** How many downgraded scenes to name before summarising the rest. */
+const MAX_LISTED_WARNINGS = 5;
 
 function parseArgs(argv) {
   const flags = {};
@@ -124,7 +128,7 @@ function printConcepts(concepts, screenshotCount = 0) {
   const hookWidth = Math.max(...rows.map(row => row.hook.length));
 
   say();
-  say(`  ${style.bold(`${concepts.length} angles:`)}`);
+  say(`  ${style.bold(`${concepts.length} angle${concepts.length === 1 ? '' : 's'}:`)}`);
   for (const row of rows) {
     say(
       `  ${row.number}) ${row.lens.padEnd(lensWidth)} — ` +
@@ -242,7 +246,34 @@ async function renderConcept(concept, { productImages }) {
     );
   }
   say(`  ${style.green('✓')} ${finished.videoUrl} ${style.dim(elapsed(startedAt))}`);
+  printSceneWarnings(finished.sceneWarnings);
   return finished;
+}
+
+/**
+ * What the renderer had to change to fit the template.
+ *
+ * A downgraded scene is the difference between a video that shows the planned
+ * content and one that quietly replaces it with placeholder text — and the
+ * placeholder is visible in the finished file, so reporting a render as done
+ * without saying this hands over a video whose defects only show on playback.
+ */
+function printSceneWarnings(warnings) {
+  if (!Array.isArray(warnings) || warnings.length === 0) return;
+
+  const count = warnings.length;
+  say(
+    `  ${style.yellow('⚠')} ${count} scene${count === 1 ? '' : 's'} did not get what the ` +
+      `template needed — the video may show placeholder text.`
+  );
+  for (const warning of warnings.slice(0, MAX_LISTED_WARNINGS)) {
+    const where =
+      typeof warning.sceneIndex === 'number' ? `scene ${warning.sceneIndex + 1}` : 'plan';
+    say(style.dim(`      ${where}: ${warning.message}`));
+  }
+  if (count > MAX_LISTED_WARNINGS) {
+    say(style.dim(`      …and ${count - MAX_LISTED_WARNINGS} more`));
+  }
 }
 
 async function main() {

@@ -76,7 +76,7 @@ async function runCli(args, { baseUrl, env = {} } = {}) {
  * how many polls report "rendering" before the video is finished, so the poll
  * loop is exercised rather than skipped.
  */
-function anglesServer({ rendersBeforeDone = 1, renderGatewayError = false, finalStatus = 'rendered' } = {}) {
+function anglesServer({ rendersBeforeDone = 1, renderGatewayError = false, finalStatus = 'rendered', sceneWarnings = null } = {}) {
   const calls = { fromUrl: [], render: [], polls: 0 };
   let remaining = rendersBeforeDone;
 
@@ -119,6 +119,7 @@ function anglesServer({ rendersBeforeDone = 1, renderGatewayError = false, final
           status,
           videoUrl: status === 'rendered' ? `https://cdn.test/${videoMatch[1]}.mp4` : null,
           editUrl: `https://angles.video/projects/project-1/videos/${videoMatch[1]}`,
+          ...(done && sceneWarnings ? { sceneWarnings } : {}),
         })
       );
       return;
@@ -285,6 +286,64 @@ test('says nothing was spent when the dropped render never started', async () =>
     assert.match(result.stdout, /never started/);
     assert.match(result.stdout, /Nothing was spent/);
     assert.match(result.stdout, /video-2/);
+  });
+});
+
+// Found by watching a finished video: it contained "[DRAFT]" placeholder rows
+// and a code window reading "Add your real example". The API had reported both
+// as sceneWarnings and the CLI dropped them, so a render with visible defects
+// was announced as a plain success.
+test('reports scenes the renderer had to downgrade', async () => {
+  const { handler } = anglesServer({
+    sceneWarnings: [
+      {
+        code: 'scene-content-contract-fallback',
+        message: 'Terminal steps was downgraded to text_statement: missing steps.',
+        sceneIndex: 1,
+      },
+      {
+        code: 'scene-content-contract-missing',
+        message: 'Scene template "code_window" expects layoutPayload.codeLines.',
+        sceneIndex: 3,
+      },
+    ],
+  });
+  await withServer(handler, async baseUrl => {
+    const result = await runCli(['https://myapp.com', '--concept', '2'], { baseUrl });
+
+    assert.equal(result.code, 0);
+    assert.match(result.stdout, /2 scenes did not get what the template needed/);
+    assert.match(result.stdout, /may show placeholder text/);
+    // Reported as humans count scenes, not as the array is indexed.
+    assert.match(result.stdout, /scene 2: Terminal steps was downgraded/);
+    assert.match(result.stdout, /scene 4: Scene template "code_window"/);
+  });
+});
+
+test('summarises the tail rather than printing every downgraded scene', async () => {
+  const { handler } = anglesServer({
+    sceneWarnings: Array.from({ length: 8 }, (_, index) => ({
+      code: 'scene-content-contract-missing',
+      message: `Scene ${index} is missing something.`,
+      sceneIndex: index,
+    })),
+  });
+  await withServer(handler, async baseUrl => {
+    const result = await runCli(['https://myapp.com', '--concept', '2'], { baseUrl });
+
+    assert.match(result.stdout, /8 scenes did not get what the template needed/);
+    assert.match(result.stdout, /…and 3 more/);
+    assert.equal(result.stdout.includes('Scene 5 is missing'), false);
+  });
+});
+
+test('stays quiet when the renderer changed nothing', async () => {
+  const { handler } = anglesServer();
+  await withServer(handler, async baseUrl => {
+    const result = await runCli(['https://myapp.com', '--concept', '2'], { baseUrl });
+
+    assert.equal(result.stdout.includes('placeholder text'), false);
+    assert.equal(result.stdout.includes('⚠'), false);
   });
 });
 
