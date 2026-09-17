@@ -17,7 +17,11 @@ const testKey = 'angles_sk_test_secret_that_must_not_leak';
 // ships the client rather than reaching for a shared copy. The suite exercises
 // one of them, which is only sound while the copies are identical.
 const SKILL_FILES = ['scripts/angles.mjs', 'references/api.md'];
-const SKILLS_SHARING_THE_CLIENT = ['create-launch-video', 'create-video-from-recording'];
+const SKILLS_SHARING_THE_CLIENT = [
+  'create-launch-video',
+  'create-video-from-recording',
+  'create-presenter-video',
+];
 
 test('every Skill ships the same client and API reference', async () => {
   for (const file of SKILL_FILES) {
@@ -458,4 +462,131 @@ test('rejects an unknown background-music name before rendering', async () => {
 
   assert.equal(result.code, 1);
   assert.match(result.stderr, /bundled track name/);
+});
+
+test('drafts the script with a template and only reads it without one', async () => {
+  const seen = [];
+  await withServer(async (request, response) => {
+    let body = '';
+    for await (const chunk of request) body += chunk;
+    seen.push({ method: request.method, url: request.url, body });
+    response.setHeader('content-type', 'application/json');
+    response.end(JSON.stringify({ videoId: 'video-1', status: 'drafting', scenes: [] }));
+  }, async baseUrl => {
+    assert.equal((await runClient(['script', '--video', 'video-1', '--template', 'bento_grid'], { baseUrl })).code, 0);
+    assert.equal((await runClient(['script', '--video', 'video-1'], { baseUrl })).code, 0);
+  });
+
+  assert.deepEqual(seen, [
+    { method: 'POST', url: '/videos/video-1/script', body: JSON.stringify({ templateId: 'bento_grid' }) },
+    { method: 'GET', url: '/videos/video-1/script', body: '' },
+  ]);
+});
+
+test('rewords a sentence, discarding its take only when asked', async () => {
+  const seen = [];
+  await withServer(async (request, response) => {
+    let body = '';
+    for await (const chunk of request) body += chunk;
+    seen.push({ method: request.method, url: request.url, body: JSON.parse(body) });
+    response.setHeader('content-type', 'application/json');
+    response.end(JSON.stringify({ sceneIndex: 2 }));
+  }, async baseUrl => {
+    const base = ['script-text', '--video', 'video-1', '--scene', '2', '--text', 'Ship it today.'];
+    assert.equal((await runClient(base, { baseUrl })).code, 0);
+    assert.equal((await runClient([...base, '--discard-take'], { baseUrl })).code, 0);
+  });
+
+  assert.deepEqual(seen, [
+    { method: 'PATCH', url: '/videos/video-1/scenes/2/text', body: { text: 'Ship it today.' } },
+    {
+      method: 'PATCH',
+      url: '/videos/video-1/scenes/2/text',
+      body: { text: 'Ship it today.', discardTake: true },
+    },
+  ]);
+});
+
+test('uploads a take as one multipart file onto its scene', async () => {
+  const fixture = fileURLToPath(new URL('./fixtures-take/scene-01.mov', import.meta.url));
+  await mkdir(dirname(fixture), { recursive: true });
+  await writeFile(fixture, Buffer.from('picture and sound together'));
+
+  try {
+    await withServer(async (request, response) => {
+      assert.equal(request.method, 'PUT');
+      assert.equal(request.url, '/videos/video-1/scenes/1/take');
+      let body = '';
+      for await (const chunk of request) body += chunk;
+      assert.match(body, /name="file"; filename="scene-01\.mov"/);
+      assert.match(body, /Content-Type: video\/quicktime/);
+      assert.match(body, /name="presenter"\r\n\r\noff/);
+      response.setHeader('content-type', 'application/json');
+      response.end(JSON.stringify({ sceneIndex: 1, remainingSceneIndexes: [0] }));
+    }, async baseUrl => {
+      const result = await runClient(
+        ['take', '--video', 'video-1', '--scene', '1', '--file', fixture, '--no-presenter'],
+        { baseUrl }
+      );
+      assert.equal(result.code, 0);
+      assert.deepEqual(JSON.parse(result.stdout).remainingSceneIndexes, [0]);
+    });
+  } finally {
+    await rm(dirname(fixture), { recursive: true, force: true });
+  }
+});
+
+// A voice recorded apart from its picture can never be put back in lip sync,
+// so an audio file is not even offered to the server.
+test('refuses an audio file as a take before uploading it', async () => {
+  const result = await runClient(['take', '--video', 'video-1', '--scene', '0', '--file', 'voice.mp3']);
+
+  assert.equal(result.code, 1);
+  assert.match(JSON.parse(result.stderr).error, /video with sound/);
+});
+
+test('keys a presenter render on its takes, so a re-recorded sentence is a new render', async () => {
+  let takeId = 'take-a';
+  const renderKeys = [];
+  await withServer(async (request, response) => {
+    response.setHeader('content-type', 'application/json');
+    if (request.method === 'GET') {
+      response.end(
+        JSON.stringify({
+          remainingSceneIndexes: [],
+          scenes: [{ index: 0, take: { id: takeId } }, { index: 1, take: null }],
+        })
+      );
+      return;
+    }
+    renderKeys.push(request.headers['idempotency-key']);
+    response.end(JSON.stringify({ id: 'video-1', status: 'rendering' }));
+  }, async baseUrl => {
+    const args = ['render', '--video', 'video-1', '--template', 'bento_grid', '--presenter', '--confirm'];
+    await runClient(args, { baseUrl });
+    await runClient(args, { baseUrl });
+    takeId = 'take-b';
+    await runClient(args, { baseUrl });
+  });
+
+  assert.equal(renderKeys.length, 3);
+  assert.equal(renderKeys[0], renderKeys[1]);
+  assert.notEqual(renderKeys[1], renderKeys[2]);
+});
+
+test('refuses a presenter render while sentences are unrecorded', async () => {
+  let rendered = false;
+  await withServer(async (request, response) => {
+    response.setHeader('content-type', 'application/json');
+    if (request.method === 'POST') rendered = true;
+    response.end(JSON.stringify({ remainingSceneIndexes: [2, 4], scenes: [] }));
+  }, async baseUrl => {
+    const result = await runClient(
+      ['render', '--video', 'video-1', '--template', 'bento_grid', '--presenter', '--confirm'],
+      { baseUrl }
+    );
+    assert.equal(result.code, 1);
+    assert.match(JSON.parse(result.stderr).error, /Scenes 2, 4 have no recorded take/);
+  });
+  assert.equal(rendered, false);
 });

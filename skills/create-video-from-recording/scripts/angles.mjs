@@ -336,6 +336,74 @@ export async function uploadBody(path) {
   return form;
 }
 
+/** Containers a presenter take can arrive in. A take is always picture and sound. */
+const TAKE_MIME_TYPES = new Map([
+  ['.mp4', 'video/mp4'],
+  ['.mov', 'video/quicktime'],
+  ['.webm', 'video/webm'],
+]);
+
+/**
+ * One recorded sentence, as the single file it was recorded as.
+ *
+ * There is deliberately no way to send the voice and the picture separately:
+ * Angles lines them up by taking both from the same file, and a pair assembled
+ * from two files cannot be put back in lip sync.
+ */
+export async function takeBody(path, { presenter } = {}) {
+  const extension = extname(path).toLowerCase();
+  const mimeType = TAKE_MIME_TYPES.get(extension);
+  if (!mimeType) {
+    throw new Error(
+      `A take must be a video with sound (${[...TAKE_MIME_TYPES.keys()].join(', ')}), not ${extension || 'a file without an extension'}. ` +
+        'Record the camera and the microphone together and upload that one file.'
+    );
+  }
+
+  let stats;
+  try {
+    stats = await stat(path);
+  } catch {
+    throw new Error(`No file at ${path}.`);
+  }
+  if (stats.size > UPLOAD_MAX_BYTES) {
+    const megabytes = (stats.size / 1024 / 1024).toFixed(1);
+    throw new Error(
+      `${basename(path)} is ${megabytes}MB and the limit is 50MB. Re-encode it smaller, keeping the sound, for ` +
+        `example: ffmpeg -i "${path}" -vf scale=-2:1080 -r 30 -c:v libx264 -crf 26 -c:a aac out.mp4`
+    );
+  }
+
+  const form = new FormData();
+  form.append('file', new Blob([await readFile(path)], { type: mimeType }), basename(path));
+  if (presenter !== undefined) form.append('presenter', presenter);
+  return form;
+}
+
+function sceneIndexFlag(flags) {
+  const value = requireString(flags, 'scene');
+  if (!/^\d+$/.test(value)) throw new Error('--scene must be a scene index such as 0.');
+  return value;
+}
+
+/**
+ * The takes a presenter render would use, read from the script.
+ *
+ * Folded into the idempotency key so a render after a re-recorded sentence is a
+ * new render, not a replay of the video that still has the old take in it.
+ * Refuses early when a spoken scene has no take, since the render would too.
+ */
+async function presenterTakes(videoId) {
+  const script = await request(`/videos/${encodeURIComponent(videoId)}/script`);
+  const remaining = script.remainingSceneIndexes || [];
+  if (remaining.length) {
+    throw new Error(
+      `Scenes ${remaining.join(', ')} have no recorded take yet. Record them before rendering a presenter video.`
+    );
+  }
+  return (script.scenes || []).filter(scene => scene.take).map(scene => scene.take.id);
+}
+
 function usage() {
   return [
     'Usage:',
@@ -343,8 +411,11 @@ function usage() {
     '  angles.mjs from-url --url <https-url> [--product-name <name>] [--audience <who>]',
     '  angles.mjs templates [--video <video-id>]',
     '  angles.mjs upload --file <path>',
+    '  angles.mjs script --video <video-id> [--template <template-id>]',
+    '  angles.mjs script-text --video <video-id> --scene <index> --text <sentence> [--discard-take]',
+    '  angles.mjs take --video <video-id> --scene <index> --file <video-with-sound> [--no-presenter]',
     '  angles.mjs preview --video <video-id> --template <template-id> [asset and music options]',
-    '  angles.mjs render --video <video-id> --template <template-id> --confirm [asset and music options] [--idempotency-key <key>]',
+    '  angles.mjs render --video <video-id> --template <template-id> --confirm [--presenter] [asset and music options] [--idempotency-key <key>]',
     '  angles.mjs status --video <video-id>',
     '',
     'Asset and music options:',
@@ -389,6 +460,41 @@ async function main() {
       method: 'POST',
       body: await uploadBody(requireString(flags, 'file')),
     });
+  } else if (command === 'script') {
+    const videoId = requireString(flags, 'video');
+    const path = `/videos/${encodeURIComponent(videoId)}/script`;
+    // With a template this drafts the script (or returns the one already drafted);
+    // without one it only reads where the draft and the recording stand.
+    result =
+      flags.template === undefined
+        ? await request(path)
+        : await request(path, {
+            method: 'POST',
+            body: JSON.stringify({ templateId: requireString(flags, 'template') }),
+          });
+  } else if (command === 'script-text') {
+    const videoId = requireString(flags, 'video');
+    result = await request(
+      `/videos/${encodeURIComponent(videoId)}/scenes/${sceneIndexFlag(flags)}/text`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          text: requireString(flags, 'text'),
+          ...(flags['discard-take'] === true ? { discardTake: true } : {}),
+        }),
+      }
+    );
+  } else if (command === 'take') {
+    const videoId = requireString(flags, 'video');
+    result = await request(
+      `/videos/${encodeURIComponent(videoId)}/scenes/${sceneIndexFlag(flags)}/take`,
+      {
+        method: 'PUT',
+        body: await takeBody(requireString(flags, 'file'), {
+          ...(flags['no-presenter'] === true ? { presenter: 'off' } : {}),
+        }),
+      }
+    );
   } else if (command === 'preview') {
     const videoId = requireString(flags, 'video');
     const templateId = requireString(flags, 'template');
@@ -403,11 +509,13 @@ async function main() {
       throw new Error('Rendering consumes an Angles video allowance. Re-run with --confirm.');
     }
     const settings = await renderSettings(flags);
+    const takes = flags.presenter === true ? await presenterTakes(videoId) : [];
+    const keySettings = takes.length ? { ...settings, takes } : settings;
     const idempotencyKey =
       typeof flags['idempotency-key'] === 'string'
         ? flags['idempotency-key']
-        : Object.keys(settings).length
-          ? stableRenderKeyWithSettings(videoId, templateId, settings)
+        : Object.keys(keySettings).length
+          ? stableRenderKeyWithSettings(videoId, templateId, keySettings)
           : stableRenderKey(videoId, templateId);
     result = await request(`/videos/${encodeURIComponent(videoId)}/render`, {
       method: 'POST',

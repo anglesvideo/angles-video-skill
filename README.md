@@ -55,13 +55,14 @@ then `export ANGLES_API_KEY=angles_sk_…`.
 
 ## Agent Skills
 
-Inside Codex or Claude Code, two Skills share the same client and let the agent
+Inside Codex or Claude Code, three Skills share the same client and let the agent
 write the brief from the repository it is already working in:
 
 | Skill | Use it when |
 | --- | --- |
 | [`create-launch-video`](skills/create-launch-video) | The product is a repository you are working in or a page you can name. |
 | [`create-video-from-recording`](skills/create-video-from-recording) | You already have a screen recording of the product and want it in the video. |
+| [`create-presenter-video`](skills/create-presenter-video) | You want to present the product yourself: Angles writes the script, you record it one sentence at a time, and your voice and face replace the synthesised narrator. |
 
 [See the integration guide](https://angles.video/integrations/codex) · [Create an Angles account](https://angles.video/login?returnUrl=/developer-api) · [Read the security policy](SECURITY.md)
 
@@ -69,7 +70,7 @@ write the brief from the repository it is already working in:
 
 ## What the Skills do
 
-Both Skills:
+All three Skills:
 
 1. Read the minimum product-facing context needed for a launch brief — from the repository, the page you name, or the recording you point at.
 2. Send a structured product summary—not raw files, pages, or footage—to Angles.
@@ -108,6 +109,12 @@ For the recording Skill, install the other directory the same way:
 $skill-installer install https://github.com/anglesvideo/angles-video-skill/tree/main/skills/create-video-from-recording
 ```
 
+And for the presenter Skill:
+
+```text
+$skill-installer install https://github.com/anglesvideo/angles-video-skill/tree/main/skills/create-presenter-video
+```
+
 Review the repository before installing any Skill that includes executable scripts. Start a new Codex conversation after installation if the Skill does not appear immediately.
 
 ### Manual installation
@@ -124,6 +131,7 @@ Install it for Codex:
 mkdir -p ~/.agents/skills
 ln -s ~/angles-video-skill/skills/create-launch-video ~/.agents/skills/create-launch-video
 ln -s ~/angles-video-skill/skills/create-video-from-recording ~/.agents/skills/create-video-from-recording
+ln -s ~/angles-video-skill/skills/create-presenter-video ~/.agents/skills/create-presenter-video
 ```
 
 Or install it for Claude Code:
@@ -132,6 +140,7 @@ Or install it for Claude Code:
 mkdir -p ~/.claude/skills
 ln -s ~/angles-video-skill/skills/create-launch-video ~/.claude/skills/create-launch-video
 ln -s ~/angles-video-skill/skills/create-video-from-recording ~/.claude/skills/create-video-from-recording
+ln -s ~/angles-video-skill/skills/create-presenter-video ~/.claude/skills/create-presenter-video
 ```
 
 ## Connect your Angles account
@@ -178,7 +187,7 @@ The Skill watches the recording to write the script, tells you if any frame show
 
 ## Check before you render
 
-Both Skills preview the render before the first one starts. A preview costs nothing, changes nothing, and can be repeated. It answers the questions you would otherwise only be able to answer by spending an allowance and watching the result:
+Every Skill previews the render before the first one starts. A preview costs nothing, changes nothing, and can be repeated. It answers the questions you would otherwise only be able to answer by spending an allowance and watching the result:
 
 - Would this template accept this concept at all?
 - Which scene does each screenshot or recording land on?

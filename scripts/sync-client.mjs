@@ -17,7 +17,11 @@ export const SHARED_FILES = new Map([
   ['src/client.mjs', 'scripts/angles.mjs'],
   ['src/api.md', 'references/api.md'],
 ]);
-export const SKILLS_SHIPPING_THE_CLIENT = ['create-launch-video', 'create-video-from-recording'];
+export const SKILLS_SHIPPING_THE_CLIENT = [
+  'create-launch-video',
+  'create-video-from-recording',
+  'create-presenter-video',
+];
 
 const repoUrl = new URL('../', import.meta.url);
 const repoPath = path => fileURLToPath(new URL(path, repoUrl));

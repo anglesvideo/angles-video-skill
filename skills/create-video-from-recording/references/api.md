@@ -12,6 +12,9 @@ Authenticate with `Authorization: Bearer $ANGLES_API_KEY`. Never place the key i
 | `from-url`     | `POST /concepts/from-url` | Read a public product page and create the same three concepts from it. Accepts `url` plus optional `productName`, `targetAudience`, `launchGoal`, and the same generation options as `concepts`. |
 | `templates`    | `GET /templates`          | List template metadata, colour variants, background motifs, and optional preview URLs.                                                                  |
 | `upload`       | `POST /assets`            | Upload one local image or video and return a public HTTPS URL to pass to `preview` and `render`.                   |
+| `script`       | `POST /videos/:id/script` / `GET /videos/:id/script` | Draft the per-scene script a presenter reads (POST, with `templateId`), or read where the draft and the recording stand (GET). |
+| `script-text`  | `PATCH /videos/:id/scenes/:index/text` | Reword one sentence before it is recorded. |
+| `take`         | `PUT /videos/:id/scenes/:index/take` | Upload one recorded sentence — picture and sound in one file — onto its scene. |
 | `preview`      | `POST /videos/:id/render/preview` | Report what a render would do — blockers, downgraded scenes, and the asset bound to each scene — without rendering, writing, or spending an allowance. |
 | `render`       | `POST /videos/:id/render` | Confirm a template/color variant, optionally set a background motif or music, and start an asynchronous render. Requires `Idempotency-Key`. |
 | `status`       | `GET /videos/:id`         | Read `planned`, `rendering`, `rendered`, or `failed` state and final links.                                        |
@@ -29,6 +32,22 @@ Each template carries a `media` block answering whether uploads reach the finish
 `status` responses may include `sceneWarnings`: an array of `{ code, message, sceneIndex }` describing what the renderer had to change to fit the template. `scene-content-contract-fallback` means a scene was downgraded to a plain text layout because its required content was missing, which is the usual reason an uploaded image or clip does not appear in the finished video. `scene-content-contract-missing` names the specific `layoutPayload` field that was absent. The field is omitted when the plan needed no changes.
 
 `concepts` and `status` responses may include `launchCopy`, a publishing pack derived from the selected video's title, hook, selling angle, caption, CTA, and product context. It includes a short caption, LinkedIn, X, TikTok, and YouTube Shorts copy, pinned-comment text, thumbnail text options, hashtags, optional hook alternatives, and `source` (`ai` or `fallback`). Use it directly when presenting the final launch asset.
+
+## Presenter videos
+
+A presenter video is voiced by a person on camera instead of the synthesised voice, with their picture in a round window over the scenes. The person reads the script one sentence at a time, and each sentence is one scene.
+
+1. `POST /videos/:id/script` with `{ "templateId": "..." }` fixes the scene plan for that template and returns straight away. Poll `GET /videos/:id/script` until `status` is `ready`. The other values are `drafting`, `failed` (with `error`), and `not_started` — a draft interrupted by a server restart; POST again. The plan is written for one template: POST with another template before anything is recorded and it is redrafted; once a take exists that returns `409`.
+
+   The response lists `scenes`, each with `index`, `text`, `needsTake` (false for scenes with nothing to say), `targetSeconds` (the estimate for the synthesised voice — a take need not match it), and `take` (`null`, or `{ id, durationSeconds, presenter }`). `remainingSceneIndexes` lists the spoken scenes still without a take.
+
+2. `PATCH /videos/:id/scenes/:index/text` with `{ "text": "..." }` rewords a sentence. The scene keeps its picture; only the words change. A line is refused when it is too long for one scene, or when it ends mid-sentence — the renderer would carry its last words into the next scene, and the caption would no longer match what was said. A scene that already has a take returns `409` unless the body also sends `"discardTake": true`, which deletes the take.
+
+3. `PUT /videos/:id/scenes/:index/take` uploads one sentence as multipart `file` (mp4, mov, or webm, up to 50MB and 30 seconds). The file must carry both picture and sound: Angles takes the voice and the picture from the same recording, which is what keeps the lips in sync, so an audio-only file is refused and there is no way to send the two separately. Send `presenter=off` to keep the voice without showing the window on that scene. A recording above 1920px or 30fps is re-encoded and comes back with `transcoded: true`. Uploading again for the same scene replaces its take.
+
+4. `preview` and `render` as usual, with the template the script was drafted for. Once any take exists, every spoken scene needs one — a voice that switches between a person and the machine sounds like a fault — and a missing take or a different template is a `blocker` in preview and a `400` from render, before any allowance is reserved. A render repeated with an idempotency key used before a scene was re-recorded returns `409`; the bundled client's `render --presenter` folds the take ids into the key so this does not happen.
+
+The window sits in the lower right by default. Moving it, or turning it off for particular scenes after the fact, is done in the browser editor from `editUrl`.
 
 ## Render options
 
