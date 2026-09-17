@@ -43,7 +43,7 @@ Whichever source it came from, produce a structured summary with:
 - `targetAudience`
 - `painPoint`
 - `launchGoal`
-- `notableFeatures`
+- `notableFeatures` — treat this as required for a developer product. One of the three concepts is built around a checklist of what the product does, and this is the material that scene is written from. Leave it out and the scene has nothing concrete to list, so it is downgraded to plain text and reported back in `sceneWarnings`. Write each one as something a user can do, not as a category of capability.
 - `repositoryName` and public `repositoryUrl` when available — omit both when the source was a product page rather than a repository
 
 Add the product's real technical surface when the source shows one:
@@ -63,6 +63,8 @@ Add two more when the user has said what they want:
 - `backgroundMotif`: one of the decorative treatments exposed by the selected template. It is currently supported by `screen_demo`; use `none` when the user wants a clean background.
 
 A `preferredTemplateId` that cannot render the requested `aspectRatio` is rejected before anything is generated, so the two are safe to send together.
+
+Ask whether the user has product screenshots here, before generating anything, not at upload time. Two of the three concepts are written around scenes that hold a real product surface, and a plan is written for the template it was generated against — so knowing the answer now is what lets you set `preferredTemplateId`, and what stops a batch being generated for screenshots that arrive too late to reach it.
 
 With screenshots in hand, choose that template now rather than after the concepts exist. `templates` runs without a video id, so list them first and pick one whose `media.acceptsImages` is true:
 
@@ -112,7 +114,11 @@ Use the template's `colorVariants` and `backgroundMotifs` fields to show the ava
 
 ## 5. Upload the user's media
 
-When the user has screenshots or other images for the video, upload each file and keep the returned `url`:
+Ask for screenshots rather than waiting to be offered them. Two of the three concepts are built around scenes that hold a real product surface, and those scenes do not fail without an upload — they fall back to a drawn abstract panel or to plain text, which is what makes a finished video look like a template that was never filled in. Two or three captures of the product's main screens is what the scenes rotate through; below that the same capture repeats.
+
+So before rendering, say plainly that screenshots are what separates a video of this product from a video about it, and ask the user for them. Go ahead without if they have none — no scene is blocked — but do not let the absence go unmentioned.
+
+Upload each file the user names and keep the returned `url`:
 
 ```bash
 node <skill-directory>/scripts/angles.mjs upload --file <path>

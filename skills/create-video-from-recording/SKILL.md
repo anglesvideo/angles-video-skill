@@ -19,12 +19,41 @@ Use `ANGLES_API_BASE_URL` only when the user is testing a non-production Angles 
 
 Angles never sees this file. It writes every line of the script from the summary you produce here, so a capability you do not name cannot appear in the video — the footage will play under generic copy no matter how good it is. This step is the whole difference between a promo about the product and a promo about nothing in particular.
 
-Watch it through and write down:
+### How to watch it
+
+You cannot play a video file directly, so turn it into things you can read. Work in a temporary directory outside the working directory, and delete it when you finish.
+
+1. **Measure it.** Read duration, width, and height before anything else — they decide the template:
+
+   ```bash
+   ffprobe -v error -select_streams v:0 -show_entries stream=width,height:format=duration -of json <path>
+   ```
+
+2. **Pull frames where the picture changes**, then add a floor of one frame every few seconds so a slow stretch is not skipped:
+
+   ```bash
+   ffmpeg -v error -i <path> -vf "select='gt(scene,0.25)',scale=1280:-2" -vsync vfr <tmp>/change-%03d.jpg
+   ffmpeg -v error -i <path> -vf "fps=1/3,scale=1280:-2" <tmp>/every3s-%03d.jpg
+   ```
+
+   For a recording longer than about a minute, use `fps=1/5`. Keep the frames legible — small text in a terminal or a settings page is exactly what the sensitive-content check below has to read.
+
+3. **Look at every frame in order**, the way a viewer would meet them. Note the timestamp (frame number × interval) of each moment worth naming.
+4. **Use the audio if there is one.** When the recording has narration and a transcription tool is available, transcribe it; the narrator usually names the capability the screen is showing. Do not upload audio anywhere to transcribe it.
+
+If `ffmpeg` is not installed, say so and offer the install command for the user's platform. Do not install it yourself, and do not upload the recording to Angles or anywhere else to have it analysed — the frame check below has to happen before the file leaves the machine. If the user declines, ask them to describe what the recording shows, and still ask them to confirm it contains nothing sensitive.
+
+Angles measures the recording again on upload — where the picture changes and where it stays still — and uses that to cut Screen Studio videos. That covers timing only. What the product does, and whether a frame is safe to publish, is yours to judge from the frames.
+
+### What to write down
+
+From the frames, write down:
 
 - What the product lets someone **do** — concrete actions and outcomes, not a narration of cursor movements or a list of screens.
 - The order the demo makes its point in, and where it lands.
 - Any numbers, names, or claims visible on screen that are safe to repeat.
 - The recording's **length**, which decides how much room the scenes have, and its **orientation**, which decides which templates can use it without cropping.
+- Long stretches where nothing on screen changes (waiting for a build, a page loading). They decide whether to offer the concise edit in step 6.
 
 ### Check the frames before anything is uploaded
 
@@ -45,7 +74,7 @@ If any appear, stop and tell the user what you found and roughly where, then ask
 - `targetAudience`
 - `painPoint`
 - `launchGoal`
-- `notableFeatures` — the capabilities you saw, written as things a user can do
+- `notableFeatures` — the capabilities you saw, written as things a user can do. Treat it as required: a checklist scene with nothing concrete to list is downgraded to plain text and reported in `sceneWarnings`.
 - `aspectRatio`: `landscape` or `portrait`, matching the recording. A landscape capture placed in a portrait template is cropped or boxed, so follow the footage unless the user asks for a specific format.
 - `preferredTemplateId`: include a colour suffix such as `screen_demo:signal` when the user chooses a palette.
 - `backgroundMotif`: use one of the selected template's advertised decorative treatments; it is currently supported by `screen_demo`.
@@ -68,6 +97,13 @@ Do not read `imageSupport` or `videoSupport` for this. They describe scene slots
 
 Recommend one and let the user confirm, unless they asked you to decide.
 
+When `screen_studio` is in the list and passes the checks above, recommend it first. It is the template built for this job: the video's runtime follows the recording itself, cut at visual changes rather than stretched or trimmed to a fixed length, so the finished video shows the whole demo in the order it was recorded. Before recommending it, check two limits against what you noted in step 2:
+
+- The recording plus a three-second close must fit in 90 seconds. A longer recording is refused rather than silently truncated. If you noted long still stretches, the concise edit in step 6 may bring it under; otherwise offer `screen_demo` or ask the user to trim.
+- It is designed for landscape footage. For a portrait recording, confirm `supportedAspects` includes `portrait`, or recommend another footage template.
+
+Fall back to `screen_demo` when `screen_studio` does not fit, or when the user wants a dark look or a background decoration.
+
 Show the selected template's `colorVariants` and `backgroundMotifs` and ask for a colour and, when supported, a background decoration. Do not invent a motif name; use `none` for a clean background.
 
 ## 4. Generate concepts for that template
@@ -84,8 +120,10 @@ Present the returned concepts as a numbered list with each title, selling angle,
 
 ## 5. Upload the recording
 
+Save the output to a file in your temporary directory — the render needs what the upload measured, not only the URL:
+
 ```bash
-node <skill-directory>/scripts/angles.mjs upload --file <path>
+node <skill-directory>/scripts/angles.mjs upload --file <path> > <tmp>/recording-upload.json
 ```
 
 Upload only after the frame check in step 2, and only the file the user named.
@@ -95,9 +133,10 @@ Read the response before continuing:
 - `transcoded: true` — Angles re-encoded the file to fit the render limits. Use the returned `url`.
 - `warnings` — the clip is above the render limits and was not re-encoded. Report it rather than rendering past it.
 - `width`, `height`, `fps` — confirm the orientation matches the template you chose.
+- `recordingAnalysis` — where Angles found the picture changing and staying still. Absent means it could not measure; Screen Studio then plays the whole recording in evenly sized shots.
 - An oversized file is refused locally with the 50MB limit and an `ffmpeg` command that gets it under. Offer the command; do not run it unless the user asks.
 
-Keep the returned `url`.
+Pass the saved file, not the bare URL, as `--video-asset` from here on. Screen Studio refuses a clip that arrives without its measured duration.
 
 ## 6. Preview the render
 
@@ -108,8 +147,16 @@ node <skill-directory>/scripts/angles.mjs preview \
   --video <video-id> \
   --template <template-id> \
   [--background-motif <motif>] \
-  --video-asset <uploaded-url>
+  [--pacing <complete|concise>] \
+  --video-asset <tmp>/recording-upload.json
 ```
+
+For `screen_studio`, choose the pacing here:
+
+- `complete` (the default) plays the whole recording in order.
+- `concise` also removes still stretches of six seconds or more, keeping two seconds either side so the viewer sees what was being waited for and what happened next.
+
+When `recordingAnalysis.pauses` lists any stretch, or you noted one in step 2, preview both and tell the user the two lengths — the sum of `scenes[].durationSeconds` — and what the concise edit leaves out. Let them choose. When there are no pauses the two edits are identical; do not offer the choice. `--pacing` is rejected by every other template.
 
 - `canRender: false` — read `blockers` and fix them before spending anything.
 - `unusedMedia` listing the recording — it would reach no scene. The render would succeed and the video would not contain the footage, which is the one outcome this Skill exists to avoid. Do not render; choose a template that has slots for it.
@@ -125,13 +172,14 @@ node <skill-directory>/scripts/angles.mjs render \
   --video <video-id> \
   --template <template-id> \
   [--background-motif <motif>] \
-  --video-asset <uploaded-url> \
+  [--pacing <complete|concise>] \
+  --video-asset <tmp>/recording-upload.json \
   [--music <track-name|url|none>] \
   [--music-volume <0-1>] \
   --confirm
 ```
 
-Pass the same asset the preview was run with. Media is part of the idempotency key, so re-rendering with a corrected recording is treated as a new render rather than a replay of the one it fixes.
+Pass the same asset and pacing the preview was run with. Media is part of the idempotency key, so re-rendering with a corrected recording is treated as a new render rather than a replay of the one it fixes.
 
 Convert percentage volume to a decimal, for example 25% to `0.25`. Bundled track names are `Raising Me Higher`, `Motivating Mornings`, and `A Blue Day`. Footage-led templates often play the clip silent, so background music is worth offering.
 

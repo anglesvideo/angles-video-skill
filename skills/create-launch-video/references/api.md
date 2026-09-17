@@ -39,9 +39,10 @@ The render body accepts `templateId`, `confirmed`, and these optional fields:
 - `backgroundMotif`: one of the values listed above. This changes the decorative layer while preserving the generated non-colour style pack.
 
 - `productImages`: array of public HTTPS image URLs.
-- `productVideos`: array of `{ "url": "https://...mp4" }`.
+- `productVideos`: array of `{ "url": "https://...mp4" }`, optionally with the `durationSeconds`, `width`, `height`, and `recordingAnalysis` the upload returned. Screen Studio requires `durationSeconds` and uses `recordingAnalysis` to cut; without them it refuses the clip.
+- `recordingPacing`: Screen Studio only. `complete` (the default for a first render) plays the whole recording; `concise` also removes visually static stretches of six seconds or more, keeping two seconds on each side. Omitting it keeps the edit the video already has. Any other template rejects the field.
 
-The bundled client exposes them as `--music <track-name|url|none>`, `--music-volume <0-1>`, `--image-asset <https-url>`, and `--video-asset <https-url>`. Named tracks are `Raising Me Higher`, `Motivating Mornings`, and `A Blue Day`. Repeat the asset flags once per file.
+The bundled client exposes them as `--music <track-name|url|none>`, `--music-volume <0-1>`, `--image-asset <https-url>`, `--video-asset <https-url|upload.json>`, and `--pacing <complete|concise>`. Pass `--video-asset` the file you saved the `upload` output to (`upload --file clip.mp4 > clip.json`) so the measured fields travel with the URL. Named tracks are `Raising Me Higher`, `Motivating Mornings`, and `A Blue Day`. Repeat the asset flags once per file.
 
 A render owns the media kinds it names: sending `productVideos` replaces the project's clips rather than adding to them, so a retry that corrects a bad upload leaves nothing of the original behind. Naming neither kind leaves both untouched.
 
@@ -51,7 +52,7 @@ A render owns the media kinds it names: sending `productVideos` replaces the pro
 
 `upload --file <path>` sends one file as multipart. Accepted extensions are `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.mp4`, `.mov`, and `.webm`, up to 50MB; both limits are checked locally before any bytes are sent, and an oversized file is refused with an `ffmpeg` command that brings it under the ceiling.
 
-The response carries `url`, `key`, `type`, and — when the file could be probed — `durationSeconds`, `width`, `height`, and `fps`. A clip above the render limits (long edge over 1920px or frame rate over 30fps) is re-encoded server-side and comes back with `transcoded: true` describing the copy; use that `url`. Where the transcoder is unavailable the response carries `warnings` instead, and the clip is usable but may exhaust memory during the render.
+The response carries `url`, `key`, `type`, and — when the file could be probed — `durationSeconds`, `width`, `height`, and `fps`. A video also carries `recordingAnalysis` when Angles could measure where the picture changes and where it stays still. A clip above the render limits (long edge over 1920px or frame rate over 30fps) is re-encoded server-side and comes back with `transcoded: true` describing the copy; use that `url`. Where the transcoder is unavailable the response carries `warnings` instead, and the clip is usable but may exhaust memory during the render.
 
 ## Common errors
 

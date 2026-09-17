@@ -293,6 +293,57 @@ test('gives media its own idempotency key so a corrected clip is not a replay', 
   assert.equal(observedKeys[0], observedKeys[2]);
 });
 
+test('carries what the upload measured when given the saved upload result', async () => {
+  const uploadPath = fileURLToPath(new URL('./.tmp-upload-result.json', import.meta.url));
+  const analysis = { version: 1, method: 'visual-activity', durationSeconds: 30, cuts: [9], pauses: [] };
+  await writeFile(uploadPath, JSON.stringify({
+    success: true,
+    url: 'https://cdn.test/recording.mp4',
+    key: 'uploads/recording.mp4',
+    type: 'video',
+    durationSeconds: 30,
+    width: 1920,
+    height: 1080,
+    fps: 30,
+    recordingAnalysis: analysis,
+  }));
+  try {
+    await withServer(async (request, response) => {
+      let body = '';
+      for await (const chunk of request) body += chunk;
+      assert.deepEqual(JSON.parse(body), {
+        templateId: 'screen_studio',
+        recordingPacing: 'concise',
+        productVideos: [{
+          url: 'https://cdn.test/recording.mp4',
+          durationSeconds: 30,
+          width: 1920,
+          height: 1080,
+          recordingAnalysis: analysis,
+        }],
+      });
+      response.setHeader('content-type', 'application/json');
+      response.end(JSON.stringify({ canRender: true }));
+    }, async baseUrl => {
+      const result = await runClient([
+        'preview', '--video', 'video-1', '--template', 'screen_studio',
+        '--pacing', 'concise', '--video-asset', uploadPath,
+      ], { baseUrl });
+      assert.equal(result.code, 0, result.stderr);
+    });
+  } finally {
+    await rm(uploadPath, { force: true });
+  }
+});
+
+test('rejects an unknown pacing before sending anything', async () => {
+  const result = await runClient([
+    'preview', '--video', 'video-1', '--template', 'screen_studio', '--pacing', 'fast',
+  ], { baseUrl: 'http://127.0.0.1:9' });
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /--pacing must be one of complete, concise/);
+});
+
 test('rejects a non-HTTPS asset URL before sending it', async () => {
   const result = await runClient([
     'preview',

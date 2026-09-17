@@ -20,6 +20,8 @@ export const BACKGROUND_MOTIFS = new Set([
   'split_gradient',
 ]);
 
+export const RECORDING_PACINGS = new Set(['complete', 'concise']);
+
 export const UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
 /** The types Angles accepts, keyed by the extension it reads them from. */
 const UPLOAD_MIME_TYPES = new Map([
@@ -102,13 +104,47 @@ function assetUrls(flags, name) {
  * idempotency key: Angles rejects a key reused with different media, so a retry
  * that corrects a bad clip has to hash to a different key than the one it fixes.
  */
-function mediaSettings(flags) {
+async function mediaSettings(flags) {
   const productImages = assetUrls(flags, 'image-asset');
-  const productVideos = assetUrls(flags, 'video-asset');
+  const productVideos = await videoAssets(flags);
   return {
     ...(productImages ? { productImages } : {}),
-    ...(productVideos ? { productVideos: productVideos.map(url => ({ url })) } : {}),
+    ...(productVideos ? { productVideos } : {}),
   };
+}
+
+/** What an upload measured about a clip, carried into the render untouched. */
+const MEASURED_CLIP_FIELDS = ['durationSeconds', 'width', 'height', 'recordingAnalysis'];
+
+/**
+ * A `--video-asset` is either a URL or the JSON `upload` printed for it.
+ *
+ * The saved upload is the useful form: Screen Studio cuts a recording from the
+ * duration and activity analysis Angles measured at upload, and a bare URL
+ * carries neither — so that template refuses it rather than guessing.
+ */
+async function videoAssets(flags) {
+  const value = flags['video-asset'];
+  if (value === undefined) return undefined;
+  return Promise.all(
+    [].concat(value).map(async entry => {
+      if (typeof entry !== 'string' || !entry.trim().toLowerCase().endsWith('.json')) {
+        const [url] = assetUrls({ 'video-asset': entry }, 'video-asset');
+        return { url };
+      }
+      let upload;
+      try {
+        upload = JSON.parse(await readFile(entry.trim(), 'utf8'));
+      } catch (error) {
+        throw new Error(`--video-asset could not read the upload result ${entry}: ${error.message}`);
+      }
+      const [url] = assetUrls({ 'video-asset': upload?.url }, 'video-asset');
+      const measured = Object.fromEntries(
+        MEASURED_CLIP_FIELDS.filter(field => upload[field] !== undefined).map(field => [field, upload[field]])
+      );
+      return { url, ...measured };
+    })
+  );
 }
 
 async function readStdin() {
@@ -212,8 +248,15 @@ export function stableRenderKeyWithSettings(videoId, templateId, settings) {
     .slice(0, 40)}`;
 }
 
-function renderSettings(flags) {
+async function renderSettings(flags) {
   const settings = {};
+  if (typeof flags.pacing === 'string') {
+    const pacing = flags.pacing.trim();
+    if (!RECORDING_PACINGS.has(pacing)) {
+      throw new Error(`--pacing must be one of ${[...RECORDING_PACINGS].join(', ')}.`);
+    }
+    settings.recordingPacing = pacing;
+  }
   if (typeof flags['background-motif'] === 'string') {
     const motif = flags['background-motif'].trim();
     if (!BACKGROUND_MOTIFS.has(motif)) {
@@ -251,7 +294,7 @@ function renderSettings(flags) {
     }
     settings.backgroundMusicVolume = volume;
   }
-  return { ...settings, ...mediaSettings(flags) };
+  return { ...settings, ...(await mediaSettings(flags)) };
 }
 
 /**
@@ -305,11 +348,13 @@ function usage() {
     '  angles.mjs status --video <video-id>',
     '',
     'Asset and music options:',
-    '  --video-asset <https-url>   uploaded clip to place in the video (repeat per clip)',
+    '  --video-asset <https-url|upload.json>   uploaded clip to place in the video (repeat per clip);',
+    '                              pass the saved upload result so Screen Studio can cut the recording',
     '  --image-asset <https-url>   uploaded screenshot to place in the video (repeat per image)',
     '  --music <track-name|url|none>',
     '  --music-volume <0-1>',
     '  --background-motif <motif>   none|corner_glow|side_light|orbit_ring|grid_field|split_gradient',
+    '  --pacing <complete|concise>  Screen Studio only: play the whole recording, or also cut long static stretches',
   ].join('\n');
 }
 
@@ -349,7 +394,7 @@ async function main() {
     const templateId = requireString(flags, 'template');
     result = await request(`/videos/${encodeURIComponent(videoId)}/render/preview`, {
       method: 'POST',
-      body: JSON.stringify({ templateId, ...renderSettings(flags) }),
+      body: JSON.stringify({ templateId, ...(await renderSettings(flags)) }),
     });
   } else if (command === 'render') {
     const videoId = requireString(flags, 'video');
@@ -357,7 +402,7 @@ async function main() {
     if (flags.confirm !== true) {
       throw new Error('Rendering consumes an Angles video allowance. Re-run with --confirm.');
     }
-    const settings = renderSettings(flags);
+    const settings = await renderSettings(flags);
     const idempotencyKey =
       typeof flags['idempotency-key'] === 'string'
         ? flags['idempotency-key']
