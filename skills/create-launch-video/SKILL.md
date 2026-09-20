@@ -45,6 +45,7 @@ Whichever source it came from, produce a structured summary with:
 - `launchGoal`
 - `notableFeatures` — treat this as required for a developer product. One of the three concepts is built around a checklist of what the product does, and this is the material that scene is written from. Leave it out and the scene has nothing concrete to list, so it is downgraded to plain text and reported back in `sceneWarnings`. Write each one as something a user can do, not as a category of capability.
 - `repositoryName` and public `repositoryUrl` when available — omit both when the source was a product page rather than a repository
+- `productUrl` — the product's public address, where the video sends its viewer. Several templates close on a full-frame destination, and nothing else the brief carries can stand in for it: a repository URL sends people somewhere else, and the planner is not allowed to invent an address. Without it those plates fall back to the brand name. Send the address the user would tell someone, not a deep link into the app, and never a staging or internal hostname — it is printed on screen in a video they may publish.
 
 Add the product's real technical surface when the source shows one:
 

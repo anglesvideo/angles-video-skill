@@ -75,6 +75,7 @@ If any appear, stop and tell the user what you found and roughly where, then ask
 - `painPoint`
 - `launchGoal`
 - `notableFeatures` — the capabilities you saw, written as things a user can do. Treat it as required: a checklist scene with nothing concrete to list is downgraded to plain text and reported in `sceneWarnings`.
+- `productUrl` — the product's public address, printed on the closing plate of several templates. The planner may not invent one, so without it those plates fall back to the brand name. Ask the user for it rather than reading it off a frame: an address caught in the recording may be a staging host or a signed-in deep link, and this one is printed on screen in a video they may publish.
 - `aspectRatio`: `landscape` or `portrait`, matching the recording. A landscape capture placed in a portrait template is cropped or boxed, so follow the footage unless the user asks for a specific format.
 - `preferredTemplateId`: include a colour suffix such as `screen_demo:signal` when the user chooses a palette.
 - `backgroundMotif`: use one of the selected template's advertised decorative treatments; it is currently supported by `screen_demo`.
