@@ -15,7 +15,7 @@ Require Node.js 18 or newer and `ANGLES_API_KEY`. If the key is missing, stop an
 
 Use `ANGLES_API_BASE_URL` only when the user is testing a non-production Angles deployment.
 
-Tell the user up front what they are signing up for: reading roughly five to twelve short sentences to a camera, one recording each, and that recordings are stored by Angles at URLs that are unlisted and unguessable but do not require signing in to open. Let them decide before any work is done.
+Tell the user up front what they are signing up for: reading roughly five to twelve short sentences to a camera, one recording each. Their recordings are stored where nothing can read them without a signed link that expires, and the finished video is theirs to publish or not. Let them decide before any work is done.
 
 ## 2. Build safe product context
 
