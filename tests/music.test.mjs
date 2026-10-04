@@ -502,3 +502,140 @@ test('builds a library from files on disk, and that library can be used before i
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('generates candidate tracks through Evolink once each, and lays them out to be listened to', decoding, async () => {
+  const directory = await workspace();
+  const source = join(directory, 'source');
+  const generate = fileURLToPath(new URL('../tools/audio-library/generate.mjs', import.meta.url));
+  const manifestPath = join(directory, 'library.json');
+  await writeFile(
+    manifestPath,
+    JSON.stringify({
+      music: [
+        { id: 'steady', mood: ['driving'], description: 'Drums that open up.', prompt: 'Drums that open up. 120 BPM.' },
+        { id: 'slow', mood: ['calm'], description: 'A slow one.', prompt: 'A slow one. 90 BPM.' },
+      ],
+      sfx: [],
+    })
+  );
+  const runTool = (args, env = {}) =>
+    new Promise(resolve => {
+      const child = spawn(process.execPath, [generate, source, '--manifest', manifestPath, ...args], {
+        env: { ...process.env, EVOLINK_API_KEY: '', ...env },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      let stdout = '';
+      let stderr = '';
+      child.stdout.setEncoding('utf8').on('data', chunk => (stdout += chunk));
+      child.stderr.setEncoding('utf8').on('data', chunk => (stderr += chunk));
+      child.on('close', code => resolve({ code, stdout, stderr }));
+    });
+
+  try {
+    const dry = await runTool(['--dry-run']);
+    assert.equal(dry.code, 0, dry.stderr);
+    assert.match(dry.stdout, /2 to generate \(steady, slow\)/);
+    assert.match(dry.stdout, /\$0\.20, for 4 takes/);
+
+    const refused = await runTool([]);
+    assert.equal(refused.code, 1);
+    assert.match(refused.stderr, /EVOLINK_API_KEY is not set/);
+
+    const polls = {};
+    await withServer(
+      (request, response) => {
+        if (request.url.startsWith('/files/')) {
+          return response.end(drumLoop({ bpm: request.url.includes('steady') ? 120 : 90, seconds: 30, liftAt: request.url.endsWith('a') ? 12 : -1 }));
+        }
+        response.setHeader('content-type', 'application/json');
+        if (request.url === '/v1/audios/generations') {
+          return response.end(JSON.stringify({ id: `task-${request.body.title}`, status: 'pending' }));
+        }
+        const id = request.url.split('/').pop().replace('task-', '');
+        polls[id] = (polls[id] ?? 0) + 1;
+        const host = `http://${request.headers.host}`;
+        response.end(
+          JSON.stringify(
+            polls[id] < 2
+              ? { status: 'processing', progress: 50 }
+              : { status: 'completed', results: [`${host}/cover.jpg`], result_data: [{ audio_url: `${host}/files/${id}-a` }, { audio_url: `${host}/files/${id}-b` }] }
+          )
+        );
+      },
+      async (baseUrl, requests) => {
+        const env = { EVOLINK_API_KEY: testKey, EVOLINK_BASE_URL: baseUrl, EVOLINK_POLL_SECONDS: '0.05' };
+        const made = await runTool(['--only', 'steady'], env);
+        assert.equal(made.code, 0, made.stderr);
+        const starts = () => requests.filter(request => request.url === '/v1/audios/generations');
+        assert.equal(starts().length, 1);
+        assert.equal(starts()[0].headers.authorization, `Bearer ${testKey}`);
+        assert.deepEqual(starts()[0].body, {
+          model: 'suno-v5.5-beta',
+          custom_mode: true,
+          instrumental: true,
+          style: 'Drums that open up. 120 BPM.',
+          negative_tags: 'vocals, singing, choir, spoken word, vocal samples',
+          title: 'steady',
+          duration: 110,
+        });
+        assert.match(made.stdout, /steady-a: 30s, 120(\.\d)? BPM, beat 0\.\d+, lifts 1\d(\.\d+)?s {2}\[short\]/);
+        assert.match(made.stdout, /steady-b: .*lifts none {2}\[never lifts, short\]/);
+        assert.ok(!made.stdout.includes(testKey));
+        assert.ok(existsSync(join(source, 'candidates', 'music', 'steady-a.wav')));
+
+        const page = await readFile(join(source, 'candidates', 'review.html'), 'utf8');
+        assert.match(page, /<audio controls preload="none" src="music\/steady-a\.wav">/);
+        assert.match(page, /never lifts/);
+        assert.match(page, /Not generated yet\./);
+        assert.ok(!page.includes(testKey));
+
+        // Running again makes the one still missing, and never pays twice for the one already made.
+        await runTool([], env);
+        assert.deepEqual(starts().map(request => request.body.title), ['steady', 'slow']);
+        await runTool([], env);
+        assert.equal(starts().length, 2);
+
+        // A generation that was started and then interrupted is collected, not started again.
+        const statePath = join(source, 'candidates', 'state.json');
+        const state = JSON.parse(await readFile(statePath, 'utf8'));
+        state.music.slow = { taskId: 'task-slow', model: 'suno-v5.5-beta', status: 'pending', takes: [] };
+        await writeFile(statePath, JSON.stringify(state));
+        const resumed = await runTool([], env);
+        assert.equal(starts().length, 2);
+        assert.match(resumed.stdout, /slow-a: 30s, 90(\.\d)? BPM/);
+
+        // Asking for new takes on purpose is the one way to pay again.
+        await runTool(['--redo', 'slow'], env);
+        assert.equal(starts().length, 3);
+      }
+    );
+
+    const picked = await runTool(['--pick', 'steady=a']);
+    assert.equal(picked.code, 0, picked.stderr);
+    assert.ok(existsSync(join(source, 'music', 'steady.wav')));
+    assert.match(await readFile(join(source, 'candidates', 'review.html'), 'utf8'), /steady <small>driving<\/small> <em>chosen<\/em>/);
+    const wrong = await runTool(['--pick', 'steady=z']);
+    assert.equal(wrong.code, 1);
+    assert.match(wrong.stderr, /no take "z" of "steady"/);
+
+    // Every take can be kept, each as a track of its own, and the library is built with all of them.
+    const kept = await runTool(['--keep-all']);
+    assert.equal(kept.code, 0, kept.stderr);
+    assert.match(kept.stdout, /kept all 4 takes/);
+    assert.ok(existsSync(join(source, 'music', 'slow-b.wav')));
+    const out = join(directory, 'dist');
+    const built = spawnSync(
+      process.execPath,
+      [fileURLToPath(new URL('../tools/audio-library/build.mjs', import.meta.url)), source, '--out', out, '--manifest', manifestPath],
+      { encoding: 'utf8' }
+    );
+    assert.equal(built.status, 0, built.stderr);
+    const catalog = JSON.parse(await readFile(join(out, 'catalog.json'), 'utf8'));
+    // In the manifest's order; `steady` is the take picked earlier, kept beside the two it came from.
+    assert.deepEqual(catalog.music.map(track => track.id), ['steady', 'steady-a', 'steady-b', 'slow-a', 'slow-b']);
+    assert.deepEqual(catalog.music.find(track => track.id === 'slow-b').mood, ['calm']);
+    assert.equal(catalog.music.find(track => track.id === 'steady-b').url, 'https://cdn.angles.video/audio-library/music/steady-b.mp3');
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

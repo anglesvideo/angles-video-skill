@@ -445,7 +445,8 @@ function fitOf(track, video, liftLine) {
   if (!reachable.length) {
     return { ok: false, note: track.lifts?.length ? `no lift can land on ${liftLine}` : 'never lifts' };
   }
-  const lift = reachable.reduce((best, candidate) => (candidate.rise > best.rise ? candidate : best));
+  // The earliest one, as scripts/voice.mjs will choose: it keeps the track's build-up ahead of the turn.
+  const lift = reachable.reduce((first, candidate) => (candidate.at < first.at ? candidate : first));
   return { ok: true, note: `its lift at ${lift.at}s lands on ${liftLine} with the track started ${round(lift.at - cut, 1)}s in` };
 }
 
@@ -495,6 +496,8 @@ async function useTrack(args) {
 }
 
 async function main() {
+  // A listing piped into `head` closes the pipe early; that is not an error.
+  process.stdout.on('error', error => process.exit(error.code === 'EPIPE' ? 0 : 1));
   const args = process.argv.slice(2);
   if (args[0] === 'make') return make(args.slice(1));
   if (args[0] === 'library') return listLibrary(args.slice(1));

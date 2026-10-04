@@ -329,7 +329,9 @@ The music and sound effects the Skills offer are made ahead of time and listened
 node tools/audio-library/build.mjs <source-dir>
 ```
 
-It brings every track to one loudness, trims and levels every sound, measures what a video is cut to — tempo, beat clarity, lifts, the hit of each sound — and writes `dist/audio-library/` with a `catalog.json`. Entries with no file yet are listed rather than failed. Try the result before publishing with `ANGLES_LIBRARY_URL=dist/audio-library/catalog.json` in a workspace; publish by uploading the directory, `catalog.json` last. Needs `ffmpeg`.
+It brings every track to one loudness, trims and levels every sound, measures what a video is cut to — tempo, beat clarity, lifts, the hit of each sound — and writes `dist/audio-library/` with a `catalog.json`. Entries with no file yet are listed rather than failed, and an entry may have several takes (`<id>-a`, `<id>-b`), each kept as a track of its own.
+
+`tools/audio-library/generate.mjs <source-dir>` makes the music candidates with Suno through Evolink (`EVOLINK_API_KEY`), two takes a track, and writes a page to listen through them; `--pick` or `--keep-all` then moves the keepers to where the build reads them. A generation that was started is never started twice. Try the result before publishing with `ANGLES_LIBRARY_URL=dist/audio-library/catalog.json` in a workspace; publish by uploading the directory, `catalog.json` last. Needs `ffmpeg`.
 
 The CLI imports `src/client.mjs` directly. A Skill copy edited by hand fails the
 test suite rather than shipping files the Skills disagree about.

@@ -127,6 +127,8 @@ async function makeSound(args, sounds) {
 }
 
 async function main() {
+  // A listing piped into `head` closes the pipe early; that is not an error.
+  process.stdout.on('error', error => process.exit(error.code === 'EPIPE' ? 0 : 1));
   const args = process.argv.slice(2);
   const sounds = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : {};
   if (args[0] === 'library') return listLibrary(args.slice(1));

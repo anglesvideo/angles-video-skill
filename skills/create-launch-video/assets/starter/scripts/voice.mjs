@@ -29,8 +29,8 @@
 //       every cut after the first is moved, by lengthening the pause before
 //       it, onto a beat of the track; so is the end of the video
 //   "music": { "src": "music/track.mp3", "lift": "l06" }
-//       also starts the track at the point that puts its biggest lift on the
-//       cut into line l06 ("liftAt": <seconds> names a different lift)
+//       also starts the track at the point that puts one of its lifts on the
+//       cut into line l06 — the earliest it can reach ("liftAt": <seconds> names one)
 //   "offset": <seconds> starts the track part-way in; "snap": false leaves
 //   the cuts where the pauses put them
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -199,15 +199,27 @@ function cutToMusic(script, lines, timing, notes) {
   if (lift) {
     const index = lines.findIndex(line => line.id === lift);
     if (index < 0) fail(`"music.lift" names line "${lift}", which is not in the script.`);
-    const target = liftAt ?? analysis.lifts[0]?.at;
+    const cutOf = layout => (index === 0 ? 0 : layout.clips[index].at - timing.cutLead);
+    const loose = layOut(lines, { ...timing, grid: null });
+    // Of the track's lifts, the earliest one the video can reach and still
+    // finish before the track does: that keeps the track's own build-up in
+    // front of the turn, instead of dropping the video into its last minute.
+    const reachable = analysis.lifts
+      .map(candidate => candidate.at)
+      .filter(at => at >= cutOf(loose) && at - cutOf(loose) + loose.totalSeconds <= analysis.seconds)
+      .sort((a, b) => a - b);
+    const target = liftAt ?? reachable[0];
     if (target === undefined) {
-      notes.push(`${src} never gets clearly louder, so there is no lift to put on ${lift}. Run scripts/music.mjs on it to see its shape.`);
+      notes.push(
+        analysis.lifts.length
+          ? `No lift of ${src} can land on ${lift}: each comes before the video reaches that line, or too near the end of the track. Run scripts/music.mjs on it to see its shape.`
+          : `${src} never gets clearly louder, so there is no lift to put on ${lift}. Run scripts/music.mjs on it to see its shape.`
+      );
     } else {
       // Starting the track later slides its beats under the video. Begin on a
       // beat, so the first frame is on one too; from there, moving the start by
       // whole beats leaves the cuts where they are, and this settles in a pass or two.
-      const cutOf = layout => (index === 0 ? 0 : layout.clips[index].at - timing.cutLead);
-      const rough = target - cutOf(layOut(lines, { ...timing, grid: null }));
+      const rough = target - cutOf(loose);
       offset = points.reduce((best, point) => (Math.abs(point - rough) < Math.abs(best - rough) ? point : best), points[0] ?? rough);
       if (rough < 0) offset = rough;
       for (let pass = 0; pass < 6 && offset >= 0; pass++) {

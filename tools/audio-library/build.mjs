@@ -5,8 +5,9 @@
 //                                                   [--base-url https://cdn.angles.video/audio-library]
 //                                                   [--manifest tools/audio-library/library.json]
 //
-// <source-dir>/music/<id>.<ext> and <source-dir>/sfx/<id>.<ext> hold one file
-// per entry of the manifest, named after its id. For each one found this:
+// <source-dir>/music/<id>.<ext> and <source-dir>/sfx/<id>.<ext> hold the files
+// for each entry of the manifest, named after its id. An entry may have several
+// takes — <id>-a, <id>-b — and each becomes its own item. For each file found this:
 //
 //   music  brings it to one loudness, so every track sits under a voice at the
 //          same level, and measures what a video is cut to: tempo, how clear
@@ -42,12 +43,14 @@ function option(args, name, fallback) {
   return index >= 0 ? args[index + 1] : fallback;
 }
 
-function sourceOf(directory, id) {
-  if (!existsSync(directory)) return null;
-  const file = readdirSync(directory).find(
-    name => basename(name, extname(name)) === id && SOUND_EXTENSIONS.includes(extname(name).toLowerCase())
-  );
-  return file ? join(directory, file) : null;
+/** The files made for an entry: `<id>` itself, and any takes named `<id>-a`, `<id>-b`… */
+function sourcesOf(directory, id) {
+  if (!existsSync(directory)) return [];
+  return readdirSync(directory)
+    .filter(name => SOUND_EXTENSIONS.includes(extname(name).toLowerCase()))
+    .map(name => ({ id: basename(name, extname(name)), file: join(directory, name) }))
+    .filter(found => found.id === id || (found.id.startsWith(`${id}-`) && /^[a-z]$/.test(found.id.slice(id.length + 1))))
+    .sort((a, b) => a.id.localeCompare(b.id));
 }
 
 function buildTrack(source, output) {
@@ -123,60 +126,58 @@ const missing = [];
 const warnings = [];
 
 for (const entry of manifest.music) {
-  const file = sourceOf(join(source, 'music'), entry.id);
-  if (!file) {
-    missing.push(`music/${entry.id}`);
-    continue;
+  const found = sourcesOf(join(source, 'music'), entry.id);
+  if (!found.length) missing.push(`music/${entry.id}`);
+  for (const { id, file } of found) {
+    let measured;
+    try {
+      measured = buildTrack(file, join(out, 'music', `${id}.mp3`));
+    } catch (error) {
+      fail(`${file} could not be built: ${error.message}`);
+    }
+    if (measured.pulse < CLEAR_PULSE) warnings.push(`${id}: no clear beat (pulse ${measured.pulse}) — a video cannot be cut to it`);
+    if (measured.seconds < 60) warnings.push(`${id}: only ${measured.seconds.toFixed(0)}s long — too short to place under most videos`);
+    if (!measured.lifts.length) warnings.push(`${id}: never lifts — there is nothing to land a reveal on`);
+    catalog.music.push({
+      id,
+      mood: entry.mood,
+      description: entry.description,
+      url: `${baseUrl}/music/${id}.mp3`,
+      ...measured,
+    });
+    process.stdout.write(
+      `music ${id.padEnd(24)} ${measured.seconds.toFixed(0).padStart(4)}s  ${String(measured.bpm).padStart(5)} BPM  pulse ${measured.pulse}  lifts ${measured.lifts.map(lift => `${lift.at}s`).join(', ') || 'none'}\n`
+    );
   }
-  let measured;
-  try {
-    measured = buildTrack(file, join(out, 'music', `${entry.id}.mp3`));
-  } catch (error) {
-    fail(`${file} could not be built: ${error.message}`);
-  }
-  if (measured.pulse < CLEAR_PULSE) warnings.push(`${entry.id}: no clear beat (pulse ${measured.pulse}) — a video cannot be cut to it`);
-  if (measured.seconds < 60) warnings.push(`${entry.id}: only ${measured.seconds.toFixed(0)}s long — too short to place under most videos`);
-  if (!measured.lifts.length) warnings.push(`${entry.id}: never lifts — there is nothing to land a reveal on`);
-  catalog.music.push({
-    id: entry.id,
-    mood: entry.mood,
-    description: entry.description,
-    url: `${baseUrl}/music/${entry.id}.mp3`,
-    ...measured,
-  });
-  process.stdout.write(
-    `music ${entry.id.padEnd(22)} ${measured.seconds.toFixed(0).padStart(4)}s  ${String(measured.bpm).padStart(5)} BPM  pulse ${measured.pulse}  lifts ${measured.lifts.map(lift => `${lift.at}s`).join(', ') || 'none'}\n`
-  );
 }
 
 const scratch = join(out, 'trim.wav');
 for (const entry of manifest.sfx) {
-  const file = sourceOf(join(source, 'sfx'), entry.id);
-  if (!file) {
-    missing.push(`sfx/${entry.id}`);
-    continue;
+  const found = sourcesOf(join(source, 'sfx'), entry.id);
+  if (!found.length) missing.push(`sfx/${entry.id}`);
+  for (const { id, file } of found) {
+    let measured;
+    try {
+      measured = buildSound(file, join(out, 'sfx', `${id}.wav`), scratch);
+    } catch (error) {
+      fail(`${file} could not be built: ${error.message}`);
+    }
+    if (measured.hit > 0.15 && entry.kind !== 'riser' && !entry.kind.startsWith('whoosh')) {
+      warnings.push(`${id}: its hit is ${measured.hit}s in — a scene has to start it that early to land on time`);
+    }
+    if (entry.seconds && measured.seconds > entry.seconds * 2.5) {
+      warnings.push(`${id}: ${measured.seconds}s long, where about ${entry.seconds}s was wanted`);
+    }
+    catalog.sfx.push({
+      id,
+      family: entry.family,
+      kind: entry.kind,
+      description: entry.description,
+      url: `${baseUrl}/sfx/${id}.wav`,
+      ...measured,
+    });
+    process.stdout.write(`sfx   ${id.padEnd(24)} ${measured.seconds.toFixed(2).padStart(5)}s  hit at ${measured.hit.toFixed(2)}s\n`);
   }
-  let measured;
-  try {
-    measured = buildSound(file, join(out, 'sfx', `${entry.id}.wav`), scratch);
-  } catch (error) {
-    fail(`${file} could not be built: ${error.message}`);
-  }
-  if (measured.hit > 0.15 && entry.kind !== 'riser' && !entry.kind.startsWith('whoosh')) {
-    warnings.push(`${entry.id}: its hit is ${measured.hit}s in — a scene has to start it that early to land on time`);
-  }
-  if (entry.seconds && measured.seconds > entry.seconds * 2.5) {
-    warnings.push(`${entry.id}: ${measured.seconds}s long, where about ${entry.seconds}s was wanted`);
-  }
-  catalog.sfx.push({
-    id: entry.id,
-    family: entry.family,
-    kind: entry.kind,
-    description: entry.description,
-    url: `${baseUrl}/sfx/${entry.id}.wav`,
-    ...measured,
-  });
-  process.stdout.write(`sfx   ${entry.id.padEnd(22)} ${measured.seconds.toFixed(2).padStart(5)}s  hit at ${measured.hit.toFixed(2)}s\n`);
 }
 rmSync(scratch, { force: true });
 

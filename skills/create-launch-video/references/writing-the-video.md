@@ -144,7 +144,7 @@ That prints its tempo, whether it has a beat clear enough to cut to, how its ene
 ```
 
 - Every cut after the first moves onto a beat of the track, by lengthening the pause before it — never by shortening a line. The video ends on a beat too.
-- `lift` names the line where the video turns: the product arriving, the answer, the reveal. The track is started at the point that puts its biggest lift on the cut into that line. Choose that line on purpose; leave `lift` out when the track has no lift or the video has no turn.
+- `lift` names the line where the video turns: the product arriving, the answer, the reveal. The track is started at the point that puts a lift on the cut into that line — the earliest lift the video can reach, so the track's own build-up comes before the turn. Choose that line on purpose; leave `lift` out when the track has no lift or the video has no turn.
 - `"liftAt": <seconds>` picks a different lift, `"offset": <seconds>` starts the track at a point you choose, and `"snap": false` leaves the cuts where the pauses put them.
 
 A track with no clear beat still works as a bed under the voice. Do not time pictures to it.
