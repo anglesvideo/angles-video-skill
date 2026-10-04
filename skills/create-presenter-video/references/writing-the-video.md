@@ -253,12 +253,12 @@ Take them from the Angles library, when `ANGLES_API_KEY` is set:
 
 ```bash
 node scripts/sfx.mjs library
-node scripts/sfx.mjs use soft-tick soft-pop soft-riser
+node scripts/sfx.mjs use soft-tick soft-pop soft-rise
 ```
 
 The library is grouped in families whose sounds belong together. Pick one family for the video and stay in it — a paper tick beside a digital pop sounds like two videos. Sounds the user already has go straight into `public/sfx/`. For a sound the library does not have, `node scripts/sfx.mjs <name> "<what it sounds like>" --seconds <length>` makes one with the user's own ElevenLabs key; that spends their credits, so ask first.
 
-Every sound is recorded in `src/sfx.json` with its length and its `hit` — how far in its loudest moment is.
+Every sound is recorded in `src/sfx.json` with its length and its `hit` — how far in its loudest moment is. A sound that builds — a rise, a whoosh in — has its hit near its end, so lining up the hit is what makes it arrive on the moment rather than start there.
 
 Place a sound beside the picture it belongs to, from the same frame variable, started early by its `hit` so the two land together:
 

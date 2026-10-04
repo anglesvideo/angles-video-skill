@@ -1,5 +1,5 @@
 {
-  "about": "What the Angles audio library should contain. Make one file per entry, name it after the id, drop it in <source>/music or <source>/sfx, and run tools/audio-library/build.mjs.",
+  "about": "What the Angles audio library holds. Music entries carry the prompt each track was generated from; sound effects name the file they were taken from and its licence. tools/audio-library/build.mjs turns the files into the published library.",
   "musicBrief": "Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
   "music": [
     {
@@ -9,7 +9,8 @@
         "focused"
       ],
       "description": "Lo-fi electric piano chords with a soft vinyl texture, laid-back boom-bap drums and a warm round bass.",
-      "prompt": "Lo-fi electric piano chords with a soft vinyl texture, laid-back boom-bap drums and a warm round bass. 84 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade."
+      "prompt": "Lo-fi electric piano chords with a soft vinyl texture, laid-back boom-bap drums and a warm round bass. 84 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
+      "source": "Generated with Suno, through Evolink"
     },
     {
       "id": "calm-keys-02",
@@ -18,7 +19,8 @@
         "gentle"
       ],
       "description": "Felt piano arpeggios, brushed drums and upright bass, close and unhurried.",
-      "prompt": "Felt piano arpeggios, brushed drums and upright bass, close and unhurried. 88 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade."
+      "prompt": "Felt piano arpeggios, brushed drums and upright bass, close and unhurried. 88 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
+      "source": "Generated with Suno, through Evolink"
     },
     {
       "id": "warm-piano-01",
@@ -27,7 +29,8 @@
         "hopeful"
       ],
       "description": "A bright acoustic piano motif, handclaps and a light drum kit, plucked bass.",
-      "prompt": "A bright acoustic piano motif, handclaps and a light drum kit, plucked bass. 100 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade."
+      "prompt": "A bright acoustic piano motif, handclaps and a light drum kit, plucked bass. 100 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
+      "source": "Generated with Suno, through Evolink"
     },
     {
       "id": "warm-guitar-01",
@@ -36,7 +39,8 @@
         "optimistic"
       ],
       "description": "Clean fingerpicked electric guitar over a soft kick and rimshot, with a warm pad underneath.",
-      "prompt": "Clean fingerpicked electric guitar over a soft kick and rimshot, with a warm pad underneath. 104 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade."
+      "prompt": "Clean fingerpicked electric guitar over a soft kick and rimshot, with a warm pad underneath. 104 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
+      "source": "Generated with Suno, through Evolink"
     },
     {
       "id": "tech-pulse-01",
@@ -45,7 +49,8 @@
         "modern"
       ],
       "description": "A pulsing analog synth arpeggio, four-on-the-floor kick, tight hi-hats and a sidechained pad.",
-      "prompt": "A pulsing analog synth arpeggio, four-on-the-floor kick, tight hi-hats and a sidechained pad. 120 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade."
+      "prompt": "A pulsing analog synth arpeggio, four-on-the-floor kick, tight hi-hats and a sidechained pad. 120 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
+      "source": "Generated with Suno, through Evolink"
     },
     {
       "id": "tech-pulse-02",
@@ -54,7 +59,8 @@
         "confident"
       ],
       "description": "A plucky synth sequence, punchy electronic drums and sub bass, moving forward the whole time.",
-      "prompt": "A plucky synth sequence, punchy electronic drums and sub bass, moving forward the whole time. 124 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade."
+      "prompt": "A plucky synth sequence, punchy electronic drums and sub bass, moving forward the whole time. 124 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
+      "source": "Generated with Suno, through Evolink"
     },
     {
       "id": "minimal-clicks-01",
@@ -63,7 +69,8 @@
         "precise"
       ],
       "description": "Marimba-like plucks, soft clicks and a dry kick with a lot of space between the notes.",
-      "prompt": "Marimba-like plucks, soft clicks and a dry kick with a lot of space between the notes. 108 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade."
+      "prompt": "Marimba-like plucks, soft clicks and a dry kick with a lot of space between the notes. 108 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
+      "source": "Generated with Suno, through Evolink"
     },
     {
       "id": "minimal-clicks-02",
@@ -72,7 +79,8 @@
         "understated"
       ],
       "description": "Sparse muted synth stabs, a woodblock and shaker pattern, and a deep soft kick.",
-      "prompt": "Sparse muted synth stabs, a woodblock and shaker pattern, and a deep soft kick. 100 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade."
+      "prompt": "Sparse muted synth stabs, a woodblock and shaker pattern, and a deep soft kick. 100 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
+      "source": "Generated with Suno, through Evolink"
     },
     {
       "id": "build-strings-01",
@@ -81,7 +89,8 @@
         "confident"
       ],
       "description": "A staccato string ostinato with a steady kick and claps that keep adding up.",
-      "prompt": "A staccato string ostinato with a steady kick and claps that keep adding up. 112 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade."
+      "prompt": "A staccato string ostinato with a steady kick and claps that keep adding up. 112 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
+      "source": "Generated with Suno, through Evolink"
     },
     {
       "id": "build-strings-02",
@@ -90,7 +99,8 @@
         "determined"
       ],
       "description": "Piano chords with pizzicato strings; a marching snare joins at the lift.",
-      "prompt": "Piano chords with pizzicato strings; a marching snare joins at the lift. 106 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade."
+      "prompt": "Piano chords with pizzicato strings; a marching snare joins at the lift. 106 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
+      "source": "Generated with Suno, through Evolink"
     },
     {
       "id": "playful-mallets-01",
@@ -99,7 +109,8 @@
         "friendly"
       ],
       "description": "A bouncy marimba and glockenspiel melody, finger snaps and a light kick.",
-      "prompt": "A bouncy marimba and glockenspiel melody, finger snaps and a light kick. 116 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade."
+      "prompt": "A bouncy marimba and glockenspiel melody, finger snaps and a light kick. 116 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
+      "source": "Generated with Suno, through Evolink"
     },
     {
       "id": "playful-mallets-02",
@@ -108,7 +119,8 @@
         "cheerful"
       ],
       "description": "Ukulele strums with a bright synth lead, claps and tambourine.",
-      "prompt": "Ukulele strums with a bright synth lead, claps and tambourine. 118 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade."
+      "prompt": "Ukulele strums with a bright synth lead, claps and tambourine. 118 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
+      "source": "Generated with Suno, through Evolink"
     },
     {
       "id": "dark-bass-01",
@@ -117,7 +129,8 @@
         "tense"
       ],
       "description": "A low pulsing bass synth, a tight dry kick and ticking hi-hats.",
-      "prompt": "A low pulsing bass synth, a tight dry kick and ticking hi-hats. 96 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade."
+      "prompt": "A low pulsing bass synth, a tight dry kick and ticking hi-hats. 96 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
+      "source": "Generated with Suno, through Evolink"
     },
     {
       "id": "dark-bass-02",
@@ -126,7 +139,8 @@
         "brooding"
       ],
       "description": "A detuned synth drone under slow heavy drums and sparse single piano notes.",
-      "prompt": "A detuned synth drone under slow heavy drums and sparse single piano notes. 90 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade."
+      "prompt": "A detuned synth drone under slow heavy drums and sparse single piano notes. 90 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
+      "source": "Generated with Suno, through Evolink"
     },
     {
       "id": "reveal-cinematic-01",
@@ -135,7 +149,8 @@
         "triumphant"
       ],
       "description": "Soft piano and pad to begin; at the lift, big drums and wide synth chords.",
-      "prompt": "Soft piano and pad to begin; at the lift, big drums and wide synth chords. 100 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade."
+      "prompt": "Soft piano and pad to begin; at the lift, big drums and wide synth chords. 100 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
+      "source": "Generated with Suno, through Evolink"
     },
     {
       "id": "reveal-cinematic-02",
@@ -144,234 +159,263 @@
         "uplifting"
       ],
       "description": "Ambient guitar swells that break into driving drums and bass at the lift.",
-      "prompt": "Ambient guitar swells that break into driving drums and bass at the lift. 110 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade."
+      "prompt": "Ambient guitar swells that break into driving drums and bass at the lift. 110 BPM. Instrumental only, no vocals or vocal samples. One steady tempo from start to finish, with a drum or percussion pulse a listener can tap along to. Start sparse. At about 20 seconds the drums and bass come in and the track opens up clearly; it lifts again at about 50 seconds. At least 100 seconds long. No long intro, and end on a held note rather than a fade.",
+      "source": "Generated with Suno, through Evolink"
     }
   ],
-  "sfxBrief": "One sound, nothing before it and nothing after. No music, no voice, no background.",
   "sfx": [
     {
       "id": "soft-tick",
       "family": "soft",
       "kind": "tick",
-      "seconds": 0.3,
       "description": "A single very short tick, for one item appearing.",
-      "prompt": "A single very short tick, for one item appearing. Organic and close: paper, wood, felt, a soft mechanical switch. Dry, no reverb. One sound, nothing before it and nothing after."
+      "source": "Kenney — Interface Sounds — tick_002.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_interface-sounds/Audio/tick_002.ogg"
     },
     {
       "id": "soft-click",
       "family": "soft",
       "kind": "click",
-      "seconds": 0.3,
-      "description": "A single button click, for something being selected.",
-      "prompt": "A single button click, for something being selected. Organic and close: paper, wood, felt, a soft mechanical switch. Dry, no reverb. One sound, nothing before it and nothing after."
+      "description": "A single click, for something being selected.",
+      "source": "Kenney — Interface Sounds — click_003.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_interface-sounds/Audio/click_003.ogg"
     },
     {
       "id": "soft-pop",
       "family": "soft",
       "kind": "pop",
-      "seconds": 0.4,
       "description": "A single soft pop, for something arriving on screen.",
-      "prompt": "A single soft pop, for something arriving on screen. Organic and close: paper, wood, felt, a soft mechanical switch. Dry, no reverb. One sound, nothing before it and nothing after."
+      "source": "Kenney — Interface Sounds — drop_002.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_interface-sounds/Audio/drop_002.ogg"
     },
     {
-      "id": "soft-whoosh-short",
+      "id": "soft-switch",
       "family": "soft",
-      "kind": "whoosh-short",
-      "seconds": 0.5,
-      "description": "A quick whoosh, for a fast cut or a slide.",
-      "prompt": "A quick whoosh, for a fast cut or a slide. Organic and close: paper, wood, felt, a soft mechanical switch. Dry, no reverb. One sound, nothing before it and nothing after."
+      "kind": "switch",
+      "description": "A switch flipping, for a setting or a state changing.",
+      "source": "Kenney — Interface Sounds — switch_002.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_interface-sounds/Audio/switch_002.ogg"
     },
     {
-      "id": "soft-whoosh-long",
+      "id": "soft-whoosh-in",
       "family": "soft",
-      "kind": "whoosh-long",
-      "seconds": 1.2,
-      "description": "A longer whoosh that passes by, for a scene change.",
-      "prompt": "A longer whoosh that passes by, for a scene change. Organic and close: paper, wood, felt, a soft mechanical switch. Dry, no reverb. One sound, nothing before it and nothing after."
+      "kind": "whoosh-in",
+      "description": "A short whoosh that ends on its peak, to bring something in.",
+      "source": "Kenney — Interface Sounds — open_002.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_interface-sounds/Audio/open_002.ogg"
     },
     {
-      "id": "soft-riser",
+      "id": "soft-whoosh-out",
       "family": "soft",
-      "kind": "riser",
-      "seconds": 2.0,
-      "description": "A rising sweep that builds for two seconds and stops dead at its peak, to lead into a reveal.",
-      "prompt": "A rising sweep that builds for two seconds and stops dead at its peak, to lead into a reveal. Organic and close: paper, wood, felt, a soft mechanical switch. Dry, no reverb. One sound, nothing before it and nothing after."
+      "kind": "whoosh-out",
+      "description": "A short whoosh that starts on its peak, to take something away.",
+      "source": "Kenney — Interface Sounds — close_002.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_interface-sounds/Audio/close_002.ogg"
+    },
+    {
+      "id": "soft-rise",
+      "family": "soft",
+      "kind": "rise",
+      "description": "A short rising sweep, to lead into a reveal.",
+      "source": "Kenney — Interface Sounds — maximize_005.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_interface-sounds/Audio/maximize_005.ogg"
+    },
+    {
+      "id": "soft-fall",
+      "family": "soft",
+      "kind": "fall",
+      "description": "A short falling sweep, for something closing or dropping away.",
+      "source": "Kenney — Interface Sounds — minimize_005.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_interface-sounds/Audio/minimize_005.ogg"
     },
     {
       "id": "soft-impact",
       "family": "soft",
       "kind": "impact",
-      "seconds": 0.8,
       "description": "One low, solid impact, for a big number or a headline landing.",
-      "prompt": "One low, solid impact, for a big number or a headline landing. Organic and close: paper, wood, felt, a soft mechanical switch. Dry, no reverb. One sound, nothing before it and nothing after."
+      "source": "Kenney — Impact Sounds — impactSoft_heavy_000.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_impact-sounds/Audio/impactSoft_heavy_000.ogg"
     },
     {
       "id": "soft-stamp",
       "family": "soft",
       "kind": "stamp",
-      "seconds": 0.6,
-      "description": "One firm stamp, for a label or a verdict being applied.",
-      "prompt": "One firm stamp, for a label or a verdict being applied. Organic and close: paper, wood, felt, a soft mechanical switch. Dry, no reverb. One sound, nothing before it and nothing after."
+      "description": "One firm knock, for a label or a verdict being applied.",
+      "source": "Kenney — RPG Audio — bookPlace1.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_rpg-audio/Audio/bookPlace1.ogg"
     },
     {
-      "id": "soft-key",
+      "id": "soft-page",
       "family": "soft",
-      "kind": "key",
-      "seconds": 0.2,
-      "description": "A single keyboard key press.",
-      "prompt": "A single keyboard key press. Organic and close: paper, wood, felt, a soft mechanical switch. Dry, no reverb. One sound, nothing before it and nothing after."
-    },
-    {
-      "id": "soft-typing",
-      "family": "soft",
-      "kind": "typing",
-      "seconds": 1.5,
-      "description": "A short burst of fast typing on a keyboard.",
-      "prompt": "A short burst of fast typing on a keyboard. Organic and close: paper, wood, felt, a soft mechanical switch. Dry, no reverb. One sound, nothing before it and nothing after."
+      "kind": "page",
+      "description": "A page turning, for moving on to the next part.",
+      "source": "Kenney — RPG Audio — bookFlip2.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_rpg-audio/Audio/bookFlip2.ogg"
     },
     {
       "id": "soft-chime",
       "family": "soft",
       "kind": "chime",
-      "seconds": 1.0,
-      "description": "A small two-note chime going up, for something succeeding.",
-      "prompt": "A small two-note chime going up, for something succeeding. Organic and close: paper, wood, felt, a soft mechanical switch. Dry, no reverb. One sound, nothing before it and nothing after."
+      "description": "A small bright chime, for something succeeding.",
+      "source": "Kenney — Interface Sounds — confirmation_001.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_interface-sounds/Audio/confirmation_001.ogg"
     },
     {
       "id": "soft-ding",
       "family": "soft",
       "kind": "ding",
-      "seconds": 0.8,
-      "description": "A single clear notification ding.",
-      "prompt": "A single clear notification ding. Organic and close: paper, wood, felt, a soft mechanical switch. Dry, no reverb. One sound, nothing before it and nothing after."
+      "description": "A single clear ding, for a notification.",
+      "source": "Kenney — Interface Sounds — glass_001.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_interface-sounds/Audio/glass_001.ogg"
     },
     {
-      "id": "soft-shimmer",
+      "id": "soft-error",
       "family": "soft",
-      "kind": "shimmer",
-      "seconds": 1.5,
-      "description": "A gentle shimmer that fades, for something being highlighted.",
-      "prompt": "A gentle shimmer that fades, for something being highlighted. Organic and close: paper, wood, felt, a soft mechanical switch. Dry, no reverb. One sound, nothing before it and nothing after."
-    },
-    {
-      "id": "soft-count",
-      "family": "soft",
-      "kind": "count",
-      "seconds": 1.2,
-      "description": "A rapid run of tiny ticks that speeds up and ends on a slightly louder one, for a counter reaching its number.",
-      "prompt": "A rapid run of tiny ticks that speeds up and ends on a slightly louder one, for a counter reaching its number. Organic and close: paper, wood, felt, a soft mechanical switch. Dry, no reverb. One sound, nothing before it and nothing after."
+      "kind": "error",
+      "description": "A short low sound, for something failing.",
+      "source": "Kenney — Interface Sounds — error_002.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_interface-sounds/Audio/error_002.ogg"
     },
     {
       "id": "tech-tick",
       "family": "tech",
       "kind": "tick",
-      "seconds": 0.3,
       "description": "A single very short tick, for one item appearing.",
-      "prompt": "A single very short tick, for one item appearing. Synthetic and clean: a short digital tone, glassy, precise. Dry, no reverb. One sound, nothing before it and nothing after."
+      "source": "Kenney — UI Audio — rollover2.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_ui-audio/Audio/rollover2.ogg"
     },
     {
       "id": "tech-click",
       "family": "tech",
       "kind": "click",
-      "seconds": 0.3,
-      "description": "A single button click, for something being selected.",
-      "prompt": "A single button click, for something being selected. Synthetic and clean: a short digital tone, glassy, precise. Dry, no reverb. One sound, nothing before it and nothing after."
+      "description": "A single click, for something being selected.",
+      "source": "Kenney — UI Audio — mouseclick1.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_ui-audio/Audio/mouseclick1.ogg"
     },
     {
       "id": "tech-pop",
       "family": "tech",
       "kind": "pop",
-      "seconds": 0.4,
       "description": "A single soft pop, for something arriving on screen.",
-      "prompt": "A single soft pop, for something arriving on screen. Synthetic and clean: a short digital tone, glassy, precise. Dry, no reverb. One sound, nothing before it and nothing after."
+      "source": "Kenney — Digital Audio — pepSound1.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_digital-audio/Audio/pepSound1.ogg"
     },
     {
-      "id": "tech-whoosh-short",
+      "id": "tech-switch",
       "family": "tech",
-      "kind": "whoosh-short",
-      "seconds": 0.5,
-      "description": "A quick whoosh, for a fast cut or a slide.",
-      "prompt": "A quick whoosh, for a fast cut or a slide. Synthetic and clean: a short digital tone, glassy, precise. Dry, no reverb. One sound, nothing before it and nothing after."
+      "kind": "switch",
+      "description": "A switch flipping, for a setting or a state changing.",
+      "source": "Kenney — UI Audio — switch1.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_ui-audio/Audio/switch1.ogg"
     },
     {
-      "id": "tech-whoosh-long",
+      "id": "tech-whoosh-in",
       "family": "tech",
-      "kind": "whoosh-long",
-      "seconds": 1.2,
-      "description": "A longer whoosh that passes by, for a scene change.",
-      "prompt": "A longer whoosh that passes by, for a scene change. Synthetic and clean: a short digital tone, glassy, precise. Dry, no reverb. One sound, nothing before it and nothing after."
+      "kind": "whoosh-in",
+      "description": "A short whoosh that ends on its peak, to bring something in.",
+      "source": "Kenney — Sci-fi Sounds — doorClose_000.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_sci-fi-sounds/Audio/doorClose_000.ogg"
     },
     {
-      "id": "tech-riser",
+      "id": "tech-whoosh-out",
       "family": "tech",
-      "kind": "riser",
-      "seconds": 2.0,
-      "description": "A rising sweep that builds for two seconds and stops dead at its peak, to lead into a reveal.",
-      "prompt": "A rising sweep that builds for two seconds and stops dead at its peak, to lead into a reveal. Synthetic and clean: a short digital tone, glassy, precise. Dry, no reverb. One sound, nothing before it and nothing after."
+      "kind": "whoosh-out",
+      "description": "A short whoosh that starts on its peak, to take something away.",
+      "source": "Kenney — Sci-fi Sounds — doorOpen_000.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_sci-fi-sounds/Audio/doorOpen_000.ogg"
+    },
+    {
+      "id": "tech-rise",
+      "family": "tech",
+      "kind": "rise",
+      "description": "A short rising sweep, to lead into a reveal.",
+      "source": "Kenney — Digital Audio — powerUp10.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_digital-audio/Audio/powerUp10.ogg"
+    },
+    {
+      "id": "tech-fall",
+      "family": "tech",
+      "kind": "fall",
+      "description": "A short falling sweep, for something closing or dropping away.",
+      "source": "Kenney — Digital Audio — phaserDown1.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_digital-audio/Audio/phaserDown1.ogg"
     },
     {
       "id": "tech-impact",
       "family": "tech",
       "kind": "impact",
-      "seconds": 0.8,
       "description": "One low, solid impact, for a big number or a headline landing.",
-      "prompt": "One low, solid impact, for a big number or a headline landing. Synthetic and clean: a short digital tone, glassy, precise. Dry, no reverb. One sound, nothing before it and nothing after."
+      "source": "Kenney — Sci-fi Sounds — lowFrequency_explosion_001.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_sci-fi-sounds/Audio/lowFrequency_explosion_001.ogg"
     },
     {
       "id": "tech-stamp",
       "family": "tech",
       "kind": "stamp",
-      "seconds": 0.6,
-      "description": "One firm stamp, for a label or a verdict being applied.",
-      "prompt": "One firm stamp, for a label or a verdict being applied. Synthetic and clean: a short digital tone, glassy, precise. Dry, no reverb. One sound, nothing before it and nothing after."
-    },
-    {
-      "id": "tech-key",
-      "family": "tech",
-      "kind": "key",
-      "seconds": 0.2,
-      "description": "A single keyboard key press.",
-      "prompt": "A single keyboard key press. Synthetic and clean: a short digital tone, glassy, precise. Dry, no reverb. One sound, nothing before it and nothing after."
-    },
-    {
-      "id": "tech-typing",
-      "family": "tech",
-      "kind": "typing",
-      "seconds": 1.5,
-      "description": "A short burst of fast typing on a keyboard.",
-      "prompt": "A short burst of fast typing on a keyboard. Synthetic and clean: a short digital tone, glassy, precise. Dry, no reverb. One sound, nothing before it and nothing after."
+      "description": "One firm knock, for a label or a verdict being applied.",
+      "source": "Kenney — Sci-fi Sounds — impactMetal_002.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_sci-fi-sounds/Audio/impactMetal_002.ogg"
     },
     {
       "id": "tech-chime",
       "family": "tech",
       "kind": "chime",
-      "seconds": 1.0,
-      "description": "A small two-note chime going up, for something succeeding.",
-      "prompt": "A small two-note chime going up, for something succeeding. Synthetic and clean: a short digital tone, glassy, precise. Dry, no reverb. One sound, nothing before it and nothing after."
+      "description": "A small bright chime, for something succeeding.",
+      "source": "Kenney — Digital Audio — threeTone2.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_digital-audio/Audio/threeTone2.ogg"
     },
     {
       "id": "tech-ding",
       "family": "tech",
       "kind": "ding",
-      "seconds": 0.8,
-      "description": "A single clear notification ding.",
-      "prompt": "A single clear notification ding. Synthetic and clean: a short digital tone, glassy, precise. Dry, no reverb. One sound, nothing before it and nothing after."
+      "description": "A single clear ding, for a notification.",
+      "source": "Kenney — Digital Audio — twoTone1.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_digital-audio/Audio/twoTone1.ogg"
     },
     {
-      "id": "tech-shimmer",
+      "id": "tech-error",
       "family": "tech",
-      "kind": "shimmer",
-      "seconds": 1.5,
-      "description": "A gentle shimmer that fades, for something being highlighted.",
-      "prompt": "A gentle shimmer that fades, for something being highlighted. Synthetic and clean: a short digital tone, glassy, precise. Dry, no reverb. One sound, nothing before it and nothing after."
+      "kind": "error",
+      "description": "A short low sound, for something failing.",
+      "source": "Kenney — Digital Audio — highDown.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_digital-audio/Audio/highDown.ogg"
     },
     {
-      "id": "tech-count",
+      "id": "tech-processing",
       "family": "tech",
-      "kind": "count",
-      "seconds": 1.2,
-      "description": "A rapid run of tiny ticks that speeds up and ends on a slightly louder one, for a counter reaching its number.",
-      "prompt": "A rapid run of tiny ticks that speeds up and ends on a slightly louder one, for a counter reaching its number. Synthetic and clean: a short digital tone, glassy, precise. Dry, no reverb. One sound, nothing before it and nothing after."
+      "kind": "processing",
+      "description": "Five seconds of machine chatter, to run under something being worked out.",
+      "source": "Kenney — Sci-fi Sounds — computerNoise_000.ogg",
+      "license": "CC0-1.0",
+      "from": "kenney_sci-fi-sounds/Audio/computerNoise_000.ogg"
     }
-  ]
+  ],
+  "sfxCredit": "Sound effects by Kenney (kenney.nl), released under Creative Commons Zero (CC0 1.0). Credit is not required."
 }

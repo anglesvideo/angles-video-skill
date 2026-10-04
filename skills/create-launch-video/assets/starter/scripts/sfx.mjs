@@ -3,7 +3,7 @@
 //
 //   node scripts/sfx.mjs library [--family soft]
 //       the sounds on offer (ANGLES_API_KEY), grouped in families that belong together
-//   node scripts/sfx.mjs use soft-tick soft-pop soft-riser
+//   node scripts/sfx.mjs use soft-tick soft-pop soft-rise
 //       downloads those into public/sfx/ ("--as <name>" renames a single one)
 //   node scripts/sfx.mjs stamp "A rubber stamp hitting paper once, dry and close" --seconds 0.7
 //       makes a new one with the user's own ElevenLabs key. This spends their

@@ -453,7 +453,19 @@ test('builds a library from files on disk, and that library can be used before i
         { id: 'steady', mood: ['driving'], description: 'Drums that open up.' },
         { id: 'not-made', mood: ['calm'], description: 'Still to come.' },
       ],
-      sfx: [{ id: 'soft-tick', family: 'soft', kind: 'tick', seconds: 0.3, description: 'A single very short tick.' }],
+      sfx: [
+        { id: 'soft-tick', family: 'soft', kind: 'tick', seconds: 0.3, description: 'A single very short tick.' },
+        {
+          id: 'soft-pop',
+          family: 'soft',
+          kind: 'pop',
+          description: 'A single soft pop.',
+          source: 'Somebody — A Pack — pop.wav',
+          license: 'CC0-1.0',
+          from: 'a-pack/Audio/pop.wav',
+        },
+      ],
+      sfxCredit: 'Sound effects by Somebody, CC0.',
     };
     await writeFile(join(source, 'library.json'), JSON.stringify(manifest));
     await writeFile(join(source, 'music', 'steady.wav'), drumLoop({ bpm: 120, seconds: 70, first: 0.25, liftAt: 0.25 + 40 * 0.5 }));
@@ -462,14 +474,19 @@ test('builds a library from files on disk, and that library can be used before i
     for (let i = 0; i < 300; i++) tick[Math.round(0.5 * RATE) + i] = 0.1 * Math.exp(-i / 60);
     await writeFile(join(source, 'sfx', 'soft-tick.wav'), wavOf(tick));
 
+    // A sound taken from a downloaded pack is read from the pack, not copied in by hand.
+    const packs = join(directory, 'packs');
+    await mkdir(join(packs, 'a-pack', 'Audio'), { recursive: true });
+    await writeFile(join(packs, 'a-pack', 'Audio', 'pop.wav'), wavOf(tick));
+
     const build = fileURLToPath(new URL('../tools/audio-library/build.mjs', import.meta.url));
     const built = spawnSync(
       process.execPath,
-      [build, source, '--out', out, '--manifest', join(source, 'library.json')],
+      [build, source, '--out', out, '--manifest', join(source, 'library.json'), '--packs', packs],
       { encoding: 'utf8' }
     );
     assert.equal(built.status, 0, built.stderr);
-    assert.match(built.stdout, /1 tracks and 1 sounds/);
+    assert.match(built.stdout, /1 tracks and 2 sounds/);
     assert.match(built.stdout, /Not made yet \(1\):\s+music\/not-made/);
 
     const catalog = JSON.parse(await readFile(join(out, 'catalog.json'), 'utf8'));
@@ -480,6 +497,20 @@ test('builds a library from files on disk, and that library can be used before i
     assert.ok(track.pulse > 0.5);
     assert.ok(Math.abs(track.lifts[0].at - 20.25) < 0.15, `lift measured at ${track.lifts[0]?.at}`);
     assert.ok(track.energy.length >= 17);
+
+    // The catalog says where a sound came from and under what licence, when the manifest does.
+    const pop = catalog.sfx.find(entry => entry.id === 'soft-pop');
+    assert.equal(pop.source, 'Somebody — A Pack — pop.wav');
+    assert.equal(pop.license, 'CC0-1.0');
+    assert.equal(pop.from, undefined);
+    assert.equal(catalog.sfxCredit, 'Sound effects by Somebody, CC0.');
+    assert.equal(catalog.sfx[0].source, undefined);
+
+    // The whole library can be listened to from one page.
+    const page = await readFile(join(out, 'index.html'), 'utf8');
+    assert.match(page, /<audio controls preload="none" src="music\/steady\.mp3">/);
+    assert.match(page, /<audio controls preload="none" src="sfx\/soft-pop\.wav">/);
+    assert.match(page, /Somebody — A Pack — pop\.wav · CC0-1\.0/);
 
     // Trimmed to the sound itself, so its hit is at the very start, and brought up to level.
     const [sound] = catalog.sfx;
