@@ -1,0 +1,6 @@
+node_modules/
+out/
+# Recordings of a person and raw screen captures stay on this machine unless
+# their owner decides otherwise.
+public/takes/
+public/footage/

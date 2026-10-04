@@ -1,0 +1,25 @@
+{
+  "name": "product-videos",
+  "private": true,
+  "description": "Product videos written for this product. The look is written once in src/look.tsx; each video is written from that day's real facts.",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts",
+    "voice": "node scripts/voice.mjs",
+    "music": "node scripts/music.mjs",
+    "sfx": "node scripts/sfx.mjs",
+    "frames": "node scripts/frames.mjs",
+    "finish": "node scripts/finish.mjs"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.420",
+    "@remotion/google-fonts": "4.0.420",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "remotion": "4.0.420"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "typescript": "5.7.2"
+  }
+}

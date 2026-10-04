@@ -1,4 +1,4 @@
 interface:
   display_name: "Presenter Video"
-  short_description: "Record yourself reading an Angles script and get a video with you in it"
+  short_description: "Record a script one sentence at a time; your agent builds the video around you"
   default_prompt: "Use $create-presenter-video to make a product video where I present it on camera."

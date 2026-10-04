@@ -1,4 +1,4 @@
 interface:
   display_name: "Create Launch Video"
-  short_description: "Turn a repository, product page, or screen recording into an Angles launch video"
-  default_prompt: "Use $create-launch-video to turn this product into a launch-ready video."
+  short_description: "Your agent writes and renders a product video from the repository's real facts"
+  default_prompt: "Use $create-launch-video to write and render a product video for this repository."
