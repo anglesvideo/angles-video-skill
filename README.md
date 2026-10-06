@@ -15,6 +15,7 @@ Looking for the command-line tool? `npx angles-video <url>` renders a hosted tem
 | [`create-launch-video`](skills/create-launch-video) | The product is a repository you are working in or a page you can name. |
 | [`create-video-from-recording`](skills/create-video-from-recording) | You have a screen recording of the product and want it cut into a finished video. |
 | [`create-presenter-video`](skills/create-presenter-video) | You want to present the product yourself: the agent writes the script, you record it one sentence at a time, and it builds the video around your takes. |
+| [`create-video-essay`](skills/create-video-essay) | The video is about a subject, not a product — a piece of history, an idea, how something works. The agent researches it, records every claim with its source, and draws it. |
 
 Writing and rendering need no account. A synthesised voice, and a library of music and sound effects, come through your [Angles account](https://angles.video/login?returnUrl=/developer-api) — set `ANGLES_API_KEY`. Your own files, or a provider key of your own, work without one. [Read the security policy](SECURITY.md)
 
@@ -28,10 +29,12 @@ Every Skill follows the same eight steps, each producing a file the next one rea
 4. **Voice and music** — a synthesised voice, your own recording, or none; the measured voice becomes the timeline every scene is cut to. Add a track and the agent finds its beats, moves every cut onto one, and starts the track where its lift lands on the line that turns the video.
 5. **Look** — colours, type, frame, and captions, taken from your product. Written once and reused by every later video.
 6. **Scenes** — written for this video only, each one built from the facts.
-7. **Check** — the agent renders, pulls the frames where a picture has to be right, looks at them, and fixes what is wrong.
+7. **Check** — the agent renders, pulls the frames where a picture has to be right, looks at them, and fixes what is wrong. The video is rendered in parts, so a fix costs one part rather than the whole render.
 8. **Finish** — loudness brought to publishing level, and the file handed over with a caption and a post.
 
 The workspace stays in your repository. Ask for another video next week and the agent keeps the look, takes fresh facts, and starts from the script.
+
+`create-video-essay` takes the same steps for a subject instead of a product, and shows you four pictures before it writes the rest. Its facts come from sources the agent reads and keeps a copy of, its script tells a story that answers a question rather than choosing a selling angle, every quotation is checked against the copy of its source before anything is voiced, the video itself ends on a list of its sources, and it is handed over with titles, a description, and the same list.
 
 The Skills ship mechanics only — timing, voice, beat analysis, frame extraction, loudness. Nothing in them is a design.
 
@@ -57,6 +60,12 @@ And for the presenter Skill:
 $skill-installer install https://github.com/anglesvideo/angles-video-skill/tree/main/skills/create-presenter-video
 ```
 
+And for the video essay Skill:
+
+```text
+$skill-installer install https://github.com/anglesvideo/angles-video-skill/tree/main/skills/create-video-essay
+```
+
 Review the repository before installing any Skill that includes executable scripts. Start a new Codex conversation after installation if the Skill does not appear immediately.
 
 ### Manual installation
@@ -74,6 +83,7 @@ mkdir -p ~/.agents/skills
 ln -s ~/angles-video-skill/skills/create-launch-video ~/.agents/skills/create-launch-video
 ln -s ~/angles-video-skill/skills/create-video-from-recording ~/.agents/skills/create-video-from-recording
 ln -s ~/angles-video-skill/skills/create-presenter-video ~/.agents/skills/create-presenter-video
+ln -s ~/angles-video-skill/skills/create-video-essay ~/.agents/skills/create-video-essay
 ```
 
 Or install it for Claude Code:
@@ -83,6 +93,7 @@ mkdir -p ~/.claude/skills
 ln -s ~/angles-video-skill/skills/create-launch-video ~/.claude/skills/create-launch-video
 ln -s ~/angles-video-skill/skills/create-video-from-recording ~/.claude/skills/create-video-from-recording
 ln -s ~/angles-video-skill/skills/create-presenter-video ~/.claude/skills/create-presenter-video
+ln -s ~/angles-video-skill/skills/create-video-essay ~/.claude/skills/create-video-essay
 ```
 
 ## Make a video
@@ -115,13 +126,20 @@ Or present it yourself:
 I want to present this one on camera. Write me the script and tell me what to record.
 ```
 
+Or ask about a subject instead of a product:
+
+```text
+Make a four-minute video essay on why the Library of Alexandria really disappeared. Show me the sources and the throughlines first.
+```
+
 The agent asks before it installs anything, shows you the angles and the script before it voices them, and then works through to a finished file.
 
 ## Sound
 
 **Voice**
 
-- **Synthesised** — through your Angles account (`ANGLES_API_KEY`), or through ElevenLabs, OpenAI, or MiniMax with a key of your own already set in your environment. The agent says which service will receive the script before sending it.
+- **Synthesised** — through your Angles account (`ANGLES_API_KEY`), or through ElevenLabs, OpenAI, or MiniMax with a key of your own already set in your environment. The agent says which service will receive the script before sending it. Through Angles a language has more than one narrator — a man and a woman — and the agent offers you the choice.
+- **A name said wrong** is fixed on its own line: the agent respells it for the voice, the caption keeps it as written, and only that line is voiced again.
 - **Your own** — record each line as its own file; sound only, or on camera with `create-presenter-video`.
 - **None** — captions carry the words and each line is timed to how long it takes to read. Most feeds play muted.
 
@@ -131,6 +149,7 @@ The agent asks before it installs anything, shows you the angles and the script 
 - **Your own track**, or a **new one** made with an ElevenLabs or MiniMax key of your own. The agent asks before spending your credits.
 - Whichever it is, the track is analysed on your machine. Cuts are moved onto beats by lengthening pauses, never by shortening a line, and the music is kept under the voice automatically.
 - A track with no clear beat is reported as one, and used as a bed rather than cut to.
+- A video longer than one track takes a list of them, each taking over on a line you name and cut to on its own.
 
 **Sound effects**
 
@@ -162,13 +181,13 @@ The Skills tell the agent not to read or copy:
 - Production logs
 - Source files unrelated to what the video shows
 
-When the source is a product page, only the URL you name is read, and its text is treated as content to summarize rather than as instructions to follow. When it is a screen recording, the agent checks the frames for keys, customer names, internal URLs, and stray windows before using any of it, and stops to ask when it finds them. Before handing over, it checks the rendered frames again for anything that should not be published.
+When the source is a product page, only the URL you name is read, and its text is treated as content to summarize rather than as instructions to follow. When it is a screen recording, the agent checks the frames for keys, customer names, internal URLs, and stray windows before using any of it, and stops to ask when it finds them. Before handing over, it checks the rendered frames again for anything that should not be published. When it is a subject to research, the agent reads public pages as data, records where each claim came from, and uses only pictures whose licence it can point to.
 
 See [SECURITY.md](SECURITY.md) for reporting guidance.
 
 ## Hosted render with templates
 
-The earlier path is still here for when a video cannot be rendered locally, or when you want an Angles template and the browser editor: the agent writes a summary of the product, Angles plans the scenes, fits them to a template, and renders in the cloud. Each Skill carries it as `references/hosted-render.md` and takes it only when you ask or when the machine cannot render.
+The earlier path is still here for when a video cannot be rendered locally, or when you want an Angles template and the browser editor: the agent writes a summary of the product, Angles plans the scenes, fits them to a template, and renders in the cloud. Each product Skill carries it as `references/hosted-render.md` and takes it only when you ask or when the machine cannot render. `create-video-essay` has no hosted path.
 
 It needs an Angles account, and each first render spends one video from the account's allowance.
 
@@ -321,6 +340,8 @@ generated:
 npm run sync-client
 ```
 
+`create-video-essay` has no hosted path, so it carries the workflow and the starter and leaves out the client and `api.md`. It also carries two scripts of its own, which live in its starter and are not copied anywhere: `read.mjs` keeps a text copy of each source, `check.mjs` holds the script against the facts and every quotation against those copies, and `handover.mjs` writes the subtitles, chapter times, source list, description and cover from them.
+
 ### The audio library
 
 The music and sound effects the Skills offer are made ahead of time and listened to before they are published. [`tools/audio-library/library.json`](tools/audio-library/library.json) lists what the library should hold, with a prompt for each entry. Make a file per entry, name it after its id, and build:
@@ -335,6 +356,10 @@ Sound effects are taken from sound packs released under CC0, not generated: each
 
 `tools/audio-library/generate.mjs <source-dir>` makes the music candidates with Suno through Evolink (`EVOLINK_API_KEY`), two takes a track, and writes a page to listen through them; `--pick` or `--keep-all` then moves the keepers to where the build reads them. A generation that was started is never started twice. Try the result before publishing with `ANGLES_LIBRARY_URL=dist/audio-library/catalog.json` in a workspace; publish by uploading the directory, `catalog.json` last. Needs `ffmpeg`.
 
+### Narrators
+
+Which voices an Angles account speaks in is decided on the server, but a voice is chosen by ear and an agent has none. `tools/narrators/audition.mjs` speaks one sentence in every voice listed in [`tools/narrators/candidates.json`](tools/narrators/candidates.json), beside each language's own, and writes a page to listen through with who spoke each line and how high the voice sits. A provider's name for a voice does not settle whether it is a man or a woman; the page does. `--offered` does the same for the narrators already on offer. Needs `ANGLES_API_KEY` and `ffmpeg`, and each sentence is one voice line against the account's daily limit.
+
 The CLI imports `src/client.mjs` directly. A Skill copy edited by hand fails the
 test suite rather than shipping files the Skills disagree about.
 
@@ -346,6 +371,7 @@ test suite rather than shipping files the Skills disagree about.
 - [Launch video Skill instructions](skills/create-launch-video/SKILL.md)
 - [Recording Skill instructions](skills/create-video-from-recording/SKILL.md)
 - [Presenter Skill instructions](skills/create-presenter-video/SKILL.md)
+- [Video essay Skill instructions](skills/create-video-essay/SKILL.md)
 - [Developer API reference](skills/create-launch-video/references/api.md)
 - [Security policy](SECURITY.md)
 - [License](LICENSE)

@@ -2,13 +2,16 @@
 // installed, otherwise the build that ships inside Remotion — so a workspace
 // needs nothing beyond `npm install`.
 //
-// Remotion's build is a small one. It measures, cuts, scales, encodes and
-// normalises loudness, which is everything these scripts ask of it, but it has
-// no scene-detection or tiling filters; reach for a system ffmpeg for those.
+// Remotion's build is a small one. It measures, cuts, scales, joins, encodes
+// and normalises loudness, which is everything these scripts ask of it, but it
+// has no scene-detection or tiling filters. Pages of frames are therefore put
+// together here, in `tile`; reach for a system ffmpeg for scene detection.
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { deflateSync, inflateSync } from 'node:zlib';
 
 const MAX_OUTPUT = 64 * 1024 * 1024;
 
@@ -46,6 +49,13 @@ function runWith(tool, args, encoding) {
     throw new Error(`${tool} failed (exit ${result.status}):\n${tail}`);
   }
   return result;
+}
+
+/** Runs a Remotion command (`render`, `still`…) in this workspace, showing what it prints. */
+export function remotion(args) {
+  const result = spawnSync(process.execPath, [findRemotionCli(), ...args], { stdio: 'inherit' });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error(`remotion ${args[0]} failed (exit ${result.status}).`);
 }
 
 /**
@@ -180,3 +190,132 @@ export function videoInfo(file) {
   if (!stream) throw new Error(`${file} has no picture.`);
   return { width: stream.width, height: stream.height, seconds: Number(parsed.format?.duration) };
 }
+
+/** An 8-bit RGB or RGBA PNG, as ffmpeg writes one, as rows of RGB bytes. */
+function decodePng(buffer) {
+  let width = 0;
+  let height = 0;
+  let channels = 3;
+  const packed = [];
+  for (let offset = 8; offset < buffer.length; ) {
+    const length = buffer.readUInt32BE(offset);
+    const type = buffer.toString('latin1', offset + 4, offset + 8);
+    const data = buffer.subarray(offset + 8, offset + 8 + length);
+    if (type === 'IHDR') {
+      width = data.readUInt32BE(0);
+      height = data.readUInt32BE(4);
+      if (data[8] !== 8 || (data[9] !== 2 && data[9] !== 6) || data[12] !== 0) throw new Error('Not an 8-bit RGB PNG.');
+      channels = data[9] === 6 ? 4 : 3;
+    } else if (type === 'IDAT') {
+      packed.push(data);
+    }
+    offset += 12 + length;
+  }
+  const raw = inflateSync(Buffer.concat(packed));
+  const stride = width * channels;
+  const rgb = Buffer.alloc(width * height * 3);
+  let above = Buffer.alloc(stride);
+  let row = Buffer.alloc(stride);
+  for (let y = 0; y < height; y++) {
+    const filter = raw[y * (stride + 1)];
+    const line = y * (stride + 1) + 1;
+    for (let x = 0; x < stride; x++) {
+      const left = x >= channels ? row[x - channels] : 0;
+      const up = above[x];
+      const corner = x >= channels ? above[x - channels] : 0;
+      let value = raw[line + x];
+      if (filter === 1) value += left;
+      else if (filter === 2) value += up;
+      else if (filter === 3) value += (left + up) >> 1;
+      else if (filter === 4) {
+        const guess = left + up - corner;
+        const fromLeft = Math.abs(guess - left);
+        const fromUp = Math.abs(guess - up);
+        const fromCorner = Math.abs(guess - corner);
+        value += fromLeft <= fromUp && fromLeft <= fromCorner ? left : fromUp <= fromCorner ? up : corner;
+      }
+      row[x] = value & 255;
+    }
+    for (let x = 0; x < width; x++) row.copy(rgb, (y * width + x) * 3, x * channels, x * channels + 3);
+    [above, row] = [row, above];
+  }
+  return { width, height, rgb };
+}
+
+const CRC = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+
+function chunk(type, data) {
+  const body = Buffer.concat([Buffer.from(type, 'latin1'), data]);
+  let crc = 0xffffffff;
+  for (const byte of body) crc = CRC[(crc ^ byte) & 255] ^ (crc >>> 8);
+  const out = Buffer.alloc(body.length + 8);
+  out.writeUInt32BE(data.length, 0);
+  body.copy(out, 4);
+  out.writeUInt32BE((crc ^ 0xffffffff) >>> 0, body.length + 4);
+  return out;
+}
+
+function encodePng(width, height, rgb) {
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header.set([8, 2, 0, 0, 0], 8);
+  const rows = Buffer.alloc(height * (width * 3 + 1));
+  for (let y = 0; y < height; y++) rgb.copy(rows, y * (width * 3 + 1) + 1, y * width * 3, (y + 1) * width * 3);
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk('IHDR', header),
+    chunk('IDAT', deflateSync(rows, { level: 6 })),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+
+/**
+ * Lays pictures out twelve to a page, in order, as `<directory>/sheet-01.jpg`
+ * and so on, and returns the pages written. A portrait video gets more,
+ * narrower columns, so a page stays about as wide as it is tall. The pages are
+ * put together here rather than by ffmpeg, whose build inside Remotion has no
+ * filter for it.
+ */
+export function tile(files, directory, { portrait = false } = {}) {
+  const perPage = 12;
+  const columns = portrait ? 6 : 4;
+  const across = portrait ? 420 : 640;
+  const gap = 6;
+  const work = mkdtempSync(join(tmpdir(), 'sheet-'));
+  const pages = [];
+  try {
+    for (let start = 0; start < files.length; start += perPage) {
+      const cells = files.slice(start, start + perPage).map((file, index) => {
+        const small = join(work, `${index}.png`);
+        run('ffmpeg', ['-v', 'error', '-y', '-i', file, '-frames:v', '1', '-vf', `scale=${across}:-2`, '-pix_fmt', 'rgb24', small]);
+        return decodePng(readFileSync(small));
+      });
+      const down = cells[0].height;
+      const rowsOfCells = perPage / columns;
+      const width = columns * across + (columns - 1) * gap;
+      const height = rowsOfCells * down + (rowsOfCells - 1) * gap;
+      const page = Buffer.alloc(width * height * 3, 255);
+      cells.forEach((cell, index) => {
+        const left = (index % columns) * (across + gap);
+        const top = Math.floor(index / columns) * (down + gap);
+        for (let y = 0; y < Math.min(cell.height, down); y++) {
+          cell.rgb.copy(page, ((top + y) * width + left) * 3, y * cell.width * 3, (y * cell.width + Math.min(cell.width, across)) * 3);
+        }
+      });
+      const whole = join(work, 'page.png');
+      writeFileSync(whole, encodePng(width, height, page));
+      const file = join(directory, `sheet-${String(pages.length + 1).padStart(2, '0')}.jpg`);
+      run('ffmpeg', ['-v', 'error', '-y', '-i', whole, '-frames:v', '1', '-q:v', '3', file]);
+      pages.push(file);
+    }
+  } finally {
+    rmSync(work, { recursive: true, force: true });
+  }
+  return pages;
+}
+

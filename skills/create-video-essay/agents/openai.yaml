@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Video Essay"
+  short_description: "Your agent researches a subject, sources every claim, and writes and renders the video"
+  default_prompt: "Use $create-video-essay to research, write, and render a video essay about a subject I name."

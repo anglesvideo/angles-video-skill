@@ -38,6 +38,8 @@ The starter is mechanics only:
 - `scripts/voice.mjs` — voices the script and writes the timeline, cut to the music when there is any.
 - `scripts/music.mjs` — finds a track's tempo, beats, and lifts, and gets a track from the Angles library.
 - `scripts/sfx.mjs` — gets sound effects from the Angles library.
+- `scripts/stills.mjs` — renders single frames before there is a video: a few pictures to show early, or one scene to look at after changing it.
+- `scripts/render.mjs` — renders the video in parts and joins them, so changing one scene costs one part.
 - `scripts/frames.mjs` — pulls frames out of a video so you can look at them.
 - `scripts/finish.mjs` — brings the render to publishing loudness.
 
@@ -97,7 +99,7 @@ Ask the user how the video should sound. Check what is available first:
 node scripts/voice.mjs --providers
 ```
 
-- **A synthesised voice through their Angles account** — `"provider": "angles"`, when `ANGLES_API_KEY` is set. Add `"language"` for a script that is not in English. Voice lines count against the account's daily limit, not its video allowance.
+- **A synthesised voice through their Angles account** — `"provider": "angles"`, when `ANGLES_API_KEY` is set. Add `"language"` for a script that is not in English. A language has more than one narrator: `node scripts/voice.mjs --voices <language>` lists them, and `"id"` names the one to use. Offer the user the choice — a man or a woman is the first thing a listener notices. Voice lines count against the account's daily limit, not its video allowance.
 - **A synthesised voice with a key of their own** — `elevenlabs`, `openai`, or `minimax`, when that key is already set in the environment. `voice.id` and `voice.model` choose the voice; leave them out for the provider's default.
 - **Their own voice** — `"provider": "recorded"`. They record each line as its own file, named after the line id, into `public/takes/epNN/` (for example `l03.m4a`). Sound only is fine. To appear on camera as well, use the `create-presenter-video` Skill.
 - **No voice** — `"provider": "none"`. Each line is timed to how long its caption takes to read. Most social feeds play muted, so this is a real option, not a fallback; pair it with music.
@@ -114,7 +116,7 @@ It writes `src/epNN.audio.json`: every line with its measured length and the mom
 
 Pacing lives in the script: `pause` on a line is the silence before it, `gap` the default, `tail` the hold after the last line. Give a beat room before a line that turns the argument, and at least two seconds of `tail` for the closing frame. Change a number, run the command again: unchanged lines are measured again, not paid for again. Use `--redo l03,l07` to re-voice lines whose delivery was off.
 
-You cannot hear what was made. Respell product names and acronyms the way they are said before voicing them, and ask the user to listen for a word said wrong.
+You cannot hear what was made. Where a product name or an acronym is said differently from how it is written, give that line a `"say"` — the same sentence respelled for the voice — and leave `text` as it should read on screen. Ask the user to listen for a word said wrong; correcting one is a `say` on that line and the command again.
 
 ### Music
 
@@ -146,6 +148,17 @@ That prints its tempo, whether it has a beat clear enough to cut to, how its ene
 - Every cut after the first moves onto a beat of the track, by lengthening the pause before it — never by shortening a line. The video ends on a beat too.
 - `lift` names the line where the video turns: the product arriving, the answer, the reveal. The track is started at the point that puts a lift on the cut into that line — the earliest lift the video can reach, so the track's own build-up comes before the turn. Choose that line on purpose; leave `lift` out when the track has no lift or the video has no turn.
 - `"liftAt": <seconds>` picks a different lift, `"offset": <seconds>` starts the track at a point you choose, and `"snap": false` leaves the cuts where the pauses put them.
+
+A video longer than its music takes a list of tracks, each naming the line it takes over on:
+
+```json
+"music": [
+  { "src": "music/quiet.mp3" },
+  { "src": "music/build.mp3", "from": "l09", "lift": "l12" }
+]
+```
+
+Each is cut to on its own: the cuts under it sit on its beats, and `lift`, `offset`, and `snap` mean for it what they mean for a single track. One gives way to the next at the cut into the `from` line, which stays where its `pause` put it. To choose a track for one stretch, list the library against that stretch: `node scripts/music.mjs library --for src/epNN.audio.json --from l09 --to l16 --lift l12`.
 
 A track with no clear beat still works as a bed under the voice. Do not time pictures to it.
 
@@ -238,6 +251,20 @@ const { beats, total, pulses } = buildTimeline(audio, FPS);
 
 `duck` keeps the music under the voice, lets it up in the gaps and over the closing frame, and fades it at both ends. Pass `{ under, open }` to change the two levels.
 
+With a list of tracks, `buildTimeline` returns them as `beds`. Play each in its own sequence, still at the top level:
+
+```tsx
+const { beats, total, pulses, beds } = buildTimeline(audio, FPS);
+
+{beds.map(bed => (
+  <Sequence key={bed.from} from={bed.from} durationInFrames={bed.frames} layout="none">
+    <Audio src={staticFile(bed.src)} trimBefore={bed.trimBefore} volume={bedVolume(audio, FPS, bed)} />
+  </Sequence>
+))}
+```
+
+`bedVolume` is `duck` for one track of several, with a second's fade where one hands over to the next.
+
 In this workspace a **beat** is one spoken line; the beats of the music are **pulses**, in frames. The cuts already sit on them. Use them for whatever has no word to land on:
 
 - `pulsesIn(beat, pulses)` — the pulses inside one line, counted from its start. Bring the rows of a list or the cells of a grid in on them, one each.
@@ -278,13 +305,15 @@ A render is not finished until you have looked at it. Type-check, render, then p
 
 ```bash
 npx tsc --noEmit
-npx remotion render src/index.ts epNN out/epNN.mp4
+node scripts/render.mjs epNN
 node scripts/frames.mjs out/epNN.mp4 --beats src/epNN.audio.json
 ```
 
 The type-check takes seconds and catches what would otherwise fail a minute into a render.
 
-That writes the opening frame, the middle and end of every line, and the closing frame. Open every one, in order. While iterating on one scene, `npx remotion still src/index.ts epNN out/check.png --frame=<n>` is quicker than a full render.
+That renders the video in parts of about twenty seconds, then writes the opening frame, the middle and end of every line, and the closing frame. Open every one, in order; add `--sheet` to get them twelve to a page.
+
+Do not wait for a whole render to look at one scene. `node scripts/stills.mjs epNN --lines l04,l07:mid` renders the frames where those lines have been said, straight from the scenes, and `--all --at mid --sheet` the middle of every line — where a picture that arrives late shows as an empty frame. And after a fix, `node scripts/render.mjs epNN --lines l04-l06` renders again only the parts those lines are in and joins them to the rest — seconds, where the whole video is minutes.
 
 Look for these — each has shipped in a video that looked fine in the code:
 

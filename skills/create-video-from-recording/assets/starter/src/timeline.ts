@@ -8,6 +8,8 @@ import { Easing, interpolate } from 'remotion';
 export type Clip = {
   id: string;
   text: string;
+  /** What the voice was given to say, when a name is said differently from how `text` writes it. */
+  say?: string;
   /** Path under public/ for staticFile(); null when the line has no sound. */
   src: string | null;
   /** 'audio', 'video' (a take recorded on camera) or 'silent'. */
@@ -29,12 +31,30 @@ export type Music = {
   beats: number[];
 };
 
+/** One track of several, as scripts/voice.mjs fitted it to its stretch of the video. */
+export type MusicStretch = Music & {
+  /** Seconds of video time at which this track takes over, and at which it gives way. */
+  from: number;
+  until: number;
+};
+
 export type VoiceTrack = {
   totalSeconds: number;
   clips: Clip[];
   /** Seconds before a line is spoken that its picture takes over. */
   cutLead?: number;
   music?: Music | null;
+  /** Set instead of `music` when the script lists several tracks. */
+  beds?: MusicStretch[] | null;
+};
+
+/** One track of several, in frames: where its sequence starts, how long it runs, and where in the file to begin. */
+export type Bed = {
+  /** Path under public/ for staticFile(). */
+  src: string;
+  from: number;
+  frames: number;
+  trimBefore: number;
 };
 
 export type Beat = Clip & {
@@ -59,7 +79,8 @@ export type Beat = Clip & {
  *
  * A "beat" here is one spoken line. The beats of the music are returned as
  * `pulses`, in frames, to keep the two apart; when the script names a track,
- * every cut after the first already sits on one.
+ * every cut after the first already sits on one. When it lists several, they
+ * come back as `beds`, one <Sequence> each.
  */
 export const buildTimeline = (track: VoiceTrack, fps: number) => {
   const total = Math.round(track.totalSeconds * fps);
@@ -75,8 +96,13 @@ export const buildTimeline = (track: VoiceTrack, fps: number) => {
     const until = next ? next.voiceAt - anticipate : total;
     return { ...clip, from, frames: until - from, lead: clip.voiceAt - from };
   });
-  const pulses = (track.music?.beats ?? []).map(seconds => Math.round(seconds * fps));
-  return { beats, total, pulses };
+  const stretches = track.beds ?? [];
+  const pulses = (track.music?.beats ?? stretches.flatMap(stretch => stretch.beats)).map(seconds => Math.round(seconds * fps));
+  const beds: Bed[] = stretches.map(stretch => {
+    const from = Math.round(stretch.from * fps);
+    return { src: stretch.src, from, frames: Math.round(stretch.until * fps) - from, trimBefore: Math.round(stretch.offset * fps) };
+  });
+  return { beats, total, pulses, beds };
 };
 
 /**
@@ -124,6 +150,22 @@ export const duck = (
     const fadeOut = Math.min(1, Math.max(0, (track.totalSeconds - t) / 1.2));
     return level * fadeIn * fadeOut;
   };
+};
+
+/**
+ * Volume for one track of several, played in its own <Sequence>: `duck` for
+ * the frames it runs under, fading in and out over a second where one track
+ * gives way to the next. An <Audio> counts volume frames from its own start,
+ * which is why the bed's start is added back.
+ */
+export const bedVolume = (
+  track: VoiceTrack,
+  fps: number,
+  bed: Bed,
+  levels?: { under?: number; open?: number; ramp?: number }
+) => {
+  const level = duck(track, fps, levels);
+  return (frame: number) => level(bed.from + frame) * Math.max(0, Math.min(1, frame / fps, (bed.frames - frame) / fps));
 };
 
 /**

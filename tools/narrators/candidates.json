@@ -1,0 +1,41 @@
+{
+  "about": "Voices to listen to before one is offered as a narrator. For each language the audition speaks `text` in the language's own voice first, then in each of `voices` — provider voice ids, tried as they are.",
+  "languages": {
+    "en": {
+      "text": "In May of nineteen thirty-eight, he sat down to write what he had said he could not.",
+      "voices": ["English_CalmWoman", "English_Graceful_Lady", "English_SereneWoman", "English_Wiselady"]
+    },
+    "zh-CN": {
+      "text": "一九三八年五月，他坐下来，开始写那篇自己说过写不了的文章。",
+      "voices": ["Chinese (Mandarin)_Reliable_Executive", "Chinese (Mandarin)_Male_Announcer", "Chinese (Mandarin)_Radio_Host", "Chinese (Mandarin)_Gentleman"]
+    },
+    "ja": {
+      "text": "一九三八年の五月、彼は自分には書けないと言っていた文章を書き始めた。",
+      "voices": ["Japanese_GentleButler", "Japanese_IntellectualSenior"]
+    },
+    "es": {
+      "text": "En mayo de mil novecientos treinta y ocho, se sentó a escribir lo que había dicho que no podía.",
+      "voices": ["Spanish_ThoughtfulMan", "Spanish_Narrator", "Spanish_ReliableMan"]
+    },
+    "pt-BR": {
+      "text": "Em maio de mil novecentos e trinta e oito, ele se sentou para escrever o que dissera não conseguir.",
+      "voices": ["Portuguese_ThoughtfulMan", "Portuguese_Narrator", "Portuguese_ReliableMan"]
+    },
+    "fr": {
+      "text": "En mai mille neuf cent trente-huit, il s’est assis pour écrire ce qu’il disait ne pas pouvoir écrire.",
+      "voices": ["French_MaleNarrator", "French_Male_Speech_New"]
+    },
+    "de": {
+      "text": "Im Mai neunzehnhundertachtunddreißig setzte er sich hin und schrieb, was er angeblich nicht schreiben konnte.",
+      "voices": ["German_FriendlyMan"]
+    },
+    "it": {
+      "text": "Nel maggio del millenovecentotrentotto si sedette a scrivere ciò che aveva detto di non saper scrivere.",
+      "voices": ["Italian_Narrator", "Italian_BraveHeroine"]
+    },
+    "ru": {
+      "text": "В мае тысяча девятьсот тридцать восьмого года он сел писать то, что, по его словам, написать не мог.",
+      "voices": ["Russian_AmbitiousWoman", "Russian_BrightHeroine"]
+    }
+  }
+}

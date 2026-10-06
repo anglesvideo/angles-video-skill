@@ -4,11 +4,12 @@
   "description": "Product videos written for this product. The look is written once in src/look.tsx; each video is written from that day's real facts.",
   "scripts": {
     "studio": "remotion studio src/index.ts",
-    "render": "remotion render src/index.ts",
+    "render": "node scripts/render.mjs",
     "voice": "node scripts/voice.mjs",
     "music": "node scripts/music.mjs",
     "sfx": "node scripts/sfx.mjs",
     "frames": "node scripts/frames.mjs",
+    "stills": "node scripts/stills.mjs",
     "finish": "node scripts/finish.mjs"
   },
   "dependencies": {

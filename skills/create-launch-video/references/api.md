@@ -41,11 +41,11 @@ These endpoints serve the local path, where the agent writes and renders the vid
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /audio/voices` | The voices a line can be spoken in: one per supported language, as `{ language, label, voice }`. |
-| `POST /audio/voice` | Speak one line. Body `{ text, voice?, language? }`, `text` up to 400 characters. Returns `{ audio, format, voice, provider, characters }` with `audio` base64-encoded. |
+| `GET /audio/voices` | The voices a line can be spoken in, as `{ language, label, voice, description, default }`. Every supported language has one of its own (`default: true`) and may have other narrators. |
+| `POST /audio/voice` | Speak one line. Body `{ text, voice?, language? }`, `text` up to 400 characters. `voice` is a name from `GET /audio/voices`; left out, the language's own speaks. Returns `{ audio, format, voice, provider, characters }` with `audio` base64-encoded. |
 | `GET /audio/library` | The music and sound effects on offer: `{ version, updatedAt, music: [...], sfx: [...] }`. |
 
-A voice has to be made for the words, so it is generated: one request is one line, because the caller measures each file to build its timeline and re-voices a single line when its wording changes. `provider` names which voice provider spoke the line. Angles falls back to a second provider when its first fails, and a video whose voice changes part-way sounds broken — a line whose `provider` differs from the others should be voiced again. Voice lines do not spend a video allowance; an account has a daily limit instead, and going over it returns `429` with `AUDIO_DAILY_LIMIT_REACHED` and the numbers.
+A voice has to be made for the words, so it is generated: one request is one line, because the caller measures each file to build its timeline and re-voices a single line when its wording changes. A `voice` shaped like the listed names that is not one of them returns `400` with `AUDIO_VOICE_UNKNOWN` and the names that are on offer, rather than being spoken in some other voice. `provider` names which voice provider spoke the line. Angles falls back to a second provider when its first fails, and a video whose voice changes part-way sounds broken — a line whose `provider` differs from the others should be voiced again. Voice lines do not spend a video allowance; an account has a daily limit instead, and going over it returns `429` with `AUDIO_DAILY_LIMIT_REACHED` and the numbers.
 
 Music and sound effects are not generated per request. They come from a library made ahead of time and listened to by a person, so a track costs nothing and cannot come back sounding wrong. Each entry carries what is needed to choose it without downloading it:
 

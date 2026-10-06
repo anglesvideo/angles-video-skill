@@ -2,8 +2,8 @@
 
 /**
  * Copies the shared files into every Skill that ships them: the workflow for
- * writing a video, the starter workspace it is written in, and the client and
- * API reference for the hosted path.
+ * writing a video, the starter workspace it is written in, and — for the
+ * Skills that have a hosted path — its client and API reference.
  *
  * Each Skill is installed from its own directory URL, so it has to carry these
  * files rather than import a shared copy — which is why the duplicates exist at
@@ -32,6 +32,8 @@ export const SHARED_FILES = new Map([
     'scripts/music.mjs',
     'scripts/sfx.mjs',
     'scripts/frames.mjs',
+    'scripts/stills.mjs',
+    'scripts/render.mjs',
     'scripts/finish.mjs',
   ].map(file => [`src/starter/${file}`, `assets/starter/${file}`]),
 ]);
@@ -40,6 +42,12 @@ export const SKILLS_SHIPPING_THE_CLIENT = [
   'create-video-from-recording',
   'create-presenter-video',
 ];
+/**
+ * Skills with no hosted path to fall back to. They carry the workflow and the
+ * starter, and leave out the client and its API reference.
+ */
+export const SKILLS_WITHOUT_THE_CLIENT = ['create-video-essay'];
+const HOSTED_PATH_FILES = ['src/client.mjs', 'src/api.md'];
 
 const repoUrl = new URL('../', import.meta.url);
 const repoPath = path => fileURLToPath(new URL(path, repoUrl));
@@ -48,11 +56,17 @@ export function copyPathFor(skill, sharedPath) {
   return `skills/${skill}/${SHARED_FILES.get(sharedPath)}`;
 }
 
+/** The shared files a Skill carries. */
+export function sharedFilesFor(skill) {
+  const all = [...SHARED_FILES.keys()];
+  return SKILLS_WITHOUT_THE_CLIENT.includes(skill) ? all.filter(path => !HOSTED_PATH_FILES.includes(path)) : all;
+}
+
 async function sync() {
   const written = [];
-  for (const sharedPath of SHARED_FILES.keys()) {
-    const source = await readFile(repoPath(sharedPath), 'utf8');
-    for (const skill of SKILLS_SHIPPING_THE_CLIENT) {
+  for (const skill of [...SKILLS_SHIPPING_THE_CLIENT, ...SKILLS_WITHOUT_THE_CLIENT]) {
+    for (const sharedPath of sharedFilesFor(skill)) {
+      const source = await readFile(repoPath(sharedPath), 'utf8');
       const target = copyPathFor(skill, sharedPath);
       const current = await readFile(repoPath(target), 'utf8').catch(() => null);
       if (current === source) continue;

@@ -6,6 +6,9 @@
 //       the tracks on offer (ANGLES_API_KEY): length, tempo, mood, where each
 //       lifts. With --for, says which are long enough for that video, and with
 //       --lift, which can put a lift on that line and where the track would start
+//   node scripts/music.mjs library --for src/ep01.audio.json --from c01 --to c09 [--lift c04]
+//       the same, judged against one stretch of a long video: the lines one
+//       track of several will play under
 //   node scripts/music.mjs use <id>
 //       downloads that track into public/music/ and analyses it
 //   node scripts/music.mjs public/music/track.mp3 [--json]
@@ -438,7 +441,8 @@ const bars = levels => levels.map(level => '▁▂▃▄▅▆▇█'[Math.min(7
  */
 function fitOf(track, video, liftLine) {
   const length = video.totalSeconds + 1;
-  if (!liftLine) return track.seconds >= length ? { ok: true, note: 'long enough for this video' } : { ok: false, note: 'too short for this video' };
+  const what = video.stretch ? 'these lines' : 'this video';
+  if (!liftLine) return track.seconds >= length ? { ok: true, note: `long enough for ${what}` } : { ok: false, note: `too short for ${what}` };
   const index = video.clips.findIndex(clip => clip.id === liftLine);
   const cut = index <= 0 ? 0 : video.clips[index].at - (video.cutLead ?? 0.2);
   const reachable = (track.lifts ?? []).filter(lift => lift.at >= cut && lift.at - cut + length <= track.seconds);
@@ -450,15 +454,43 @@ function fitOf(track, video, liftLine) {
   return { ok: true, note: `its lift at ${lift.at}s lands on ${liftLine} with the track started ${round(lift.at - cut, 1)}s in` };
 }
 
+/**
+ * One stretch of a video as if it were the whole of it: from the cut into
+ * `from` until the cut into the line after `to`. A track for one chapter of a
+ * long video is judged against that chapter, not against the video.
+ */
+function stretchOf(video, videoPath, from, to) {
+  const lead = video.cutLead ?? 0.2;
+  const first = from ? video.clips.findIndex(clip => clip.id === from) : 0;
+  const last = to ? video.clips.findIndex(clip => clip.id === to) : video.clips.length - 1;
+  if (first < 0) fail(`"${from}" is not a line of ${videoPath}.`);
+  if (last < 0) fail(`"${to}" is not a line of ${videoPath}.`);
+  if (last < first) fail(`"${to}" comes before "${from}" in ${videoPath}.`);
+  const start = first === 0 ? 0 : video.clips[first].at - lead;
+  const end = last + 1 < video.clips.length ? video.clips[last + 1].at - lead : video.totalSeconds;
+  return {
+    ...video,
+    stretch: true,
+    totalSeconds: round(end - start),
+    clips: video.clips.slice(first, last + 1).map(clip => ({ ...clip, at: round(clip.at - start) })),
+  };
+}
+
 async function listLibrary(args) {
   const catalog = await audioLibrary();
   const mood = option(args, '--mood');
   const videoPath = option(args, '--for');
   const liftLine = option(args, '--lift');
   if (videoPath && !existsSync(videoPath)) fail(`No timeline at ${videoPath}. Run scripts/voice.mjs first.`);
-  const video = videoPath ? JSON.parse(readFileSync(videoPath, 'utf8')) : null;
+  let video = videoPath ? JSON.parse(readFileSync(videoPath, 'utf8')) : null;
   if (liftLine && !video) fail('--lift needs --for <the video\'s audio.json>.');
-  if (liftLine && !video.clips.some(clip => clip.id === liftLine)) fail(`"${liftLine}" is not a line of ${videoPath}.`);
+  const fromLine = option(args, '--from');
+  const toLine = option(args, '--to');
+  if ((fromLine || toLine) && !video) fail('--from and --to need --for <the video\'s audio.json>.');
+  if (fromLine || toLine) video = stretchOf(video, videoPath, fromLine, toLine);
+  if (liftLine && !video.clips.some(clip => clip.id === liftLine)) {
+    fail(`"${liftLine}" is not a line of ${fromLine || toLine ? 'that stretch of ' : ''}${videoPath}.`);
+  }
 
   const tracks = catalog.music
     .filter(track => !mood || (track.mood ?? []).includes(mood))
@@ -504,7 +536,7 @@ async function main() {
   if (args[0] === 'use') return useTrack(args.slice(1));
   const file = args.find(arg => !arg.startsWith('--'));
   if (!file) {
-    fail('usage: node scripts/music.mjs library [--for <audio.json>] [--lift <line>] [--mood <word>]\n       node scripts/music.mjs use <id>\n       node scripts/music.mjs <track> [--json]\n       node scripts/music.mjs make <name> "<what it should sound like>" --seconds <length>');
+    fail('usage: node scripts/music.mjs library [--for <audio.json>] [--from <line>] [--to <line>] [--lift <line>] [--mood <word>]\n       node scripts/music.mjs use <id>\n       node scripts/music.mjs <track> [--json]\n       node scripts/music.mjs make <name> "<what it should sound like>" --seconds <length>');
   }
   if (!existsSync(file)) fail(`No track at ${file}.`);
   const analysis = analyse(file);

@@ -238,6 +238,84 @@ test('starts the track where its lift lands on the line that turns the video', d
   }
 });
 
+test('cuts a long video to a list of tracks, each under its own lines and on its own beats', decoding, async () => {
+  const directory = await workspace();
+  try {
+    const liftAt = 0.1 + 30 * 0.6;
+    await writeFile(join(directory, 'public', 'music', 'first.wav'), drumLoop({ bpm: 120, seconds: 60, first: 0.25 }));
+    await writeFile(join(directory, 'public', 'music', 'second.wav'), drumLoop({ bpm: 100, seconds: 90, first: 0.1, liftAt }));
+    const script = noVoice([{ src: 'music/first.wav' }, { src: 'music/second.wav', from: 'l04', lift: 'l05' }], 6);
+    script.lines[3].pause = 1.6;
+    const { track, stdout } = await timeline(directory, script);
+
+    assert.equal(track.music, null);
+    const [first, second] = track.beds;
+    assert.equal(track.beds.length, 2);
+    assert.equal(first.src, 'music/first.wav');
+    assert.ok(Math.abs(first.bpm - 120) < 1 && Math.abs(second.bpm - 100) < 1);
+
+    // One track gives way to the next at the cut into its `from` line.
+    assert.equal(first.from, 0);
+    assert.ok(Math.abs(first.until - second.from) < 0.002);
+    assert.ok(Math.abs(second.from - (track.clips[3].at - track.cutLead)) < 0.002);
+    assert.equal(second.until, track.totalSeconds);
+    // That cut is where the script's pause put it: the track waits for the line, not the line for the track.
+    assert.ok(Math.abs(track.clips[3].at - (track.clips[2].at + track.clips[2].seconds + 1.6)) < 0.002);
+
+    const offBeat = (bed, moment) => Math.min(...bed.beats.map(beat => Math.abs(beat - moment)));
+    for (const index of [1, 2]) assert.ok(offBeat(first, track.clips[index].at - track.cutLead) < 0.005, `${track.clips[index].id} is off the first track's beat`);
+    for (const index of [4, 5]) assert.ok(offBeat(second, track.clips[index].at - track.cutLead) < 0.005, `${track.clips[index].id} is off the second track's beat`);
+    assert.ok(offBeat(second, track.totalSeconds) < 0.005);
+    // Each track's beats are in video time, and stay inside its own stretch.
+    assert.ok(first.beats.every(beat => beat >= 0 && beat <= first.until + 0.001));
+    assert.ok(second.beats.every(beat => beat >= second.from - 0.001 && beat <= second.until + 0.001));
+
+    // The second track starts where its lift lands on the line it was asked to.
+    const cut = track.clips[4].at - track.cutLead - second.from;
+    assert.ok(Math.abs(cut + second.offset - liftAt) < 0.06, `l05 cuts at ${cut + second.offset}s of the track; the lift is at ${liftAt}s`);
+
+    assert.match(stdout, /music music\/first\.wav: from 0\.00s to \d+\.\d\ds of the video, 120(\.\d+)? BPM/);
+    assert.match(stdout, /music music\/second\.wav: from \d+\.\d\ds to \d+\.\d\ds of the video/);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('a list of tracks may start late, and says when one is too short or misnamed', decoding, async () => {
+  const directory = await workspace();
+  try {
+    await writeFile(join(directory, 'public', 'music', 'loop.wav'), drumLoop({ bpm: 120, seconds: 60, first: 0.25 }));
+    await writeFile(join(directory, 'public', 'music', 'brief.wav'), drumLoop({ bpm: 120, seconds: 8, first: 0.25 }));
+
+    // Lines before the first track have no music under them, and nothing to snap to.
+    const late = await timeline(directory, noVoice([{ src: 'music/loop.wav', from: 'l03' }], 4));
+    assert.equal(late.track.beds.length, 1);
+    assert.ok(Math.abs(late.track.beds[0].from - (late.track.clips[2].at - late.track.cutLead)) < 0.002);
+    assert.ok(Math.abs(late.track.clips[1].at - (late.track.clips[0].at + late.track.clips[0].seconds + 0.35)) < 0.002);
+
+    const short = await timeline(directory, noVoice([{ src: 'music/brief.wav' }, { src: 'music/loop.wav', from: 'l04' }], 5));
+    assert.match(short.stdout, /music\/brief\.wav ends \d+(\.\d)?s before l04 takes over/);
+
+    const write = script => writeFile(join(directory, 'src', 'ep01.script.json'), JSON.stringify(script));
+    await write(noVoice([{ src: 'music/loop.wav' }, { src: 'music/brief.wav', from: 'l09' }], 4));
+    const unknown = await run('voice', directory, ['src/ep01.script.json']);
+    assert.equal(unknown.code, 1);
+    assert.match(unknown.stderr, /"from" on music\/brief\.wav names line "l09", which is not in the script/);
+
+    await write(noVoice([{ src: 'music/loop.wav', from: 'l03' }, { src: 'music/brief.wav', from: 'l02' }], 4));
+    const order = await run('voice', directory, ['src/ep01.script.json']);
+    assert.equal(order.code, 1);
+    assert.match(order.stderr, /listed out of order: music\/brief\.wav takes over before music\/loop\.wav has started/);
+
+    await write(noVoice([{ src: 'music/loop.wav', lift: 'l04' }, { src: 'music/brief.wav', from: 'l03' }], 4));
+    const outside = await run('voice', directory, ['src/ep01.script.json']);
+    assert.equal(outside.code, 1);
+    assert.match(outside.stderr, /"lift" names line "l04", which music\/loop\.wav does not play under: it gives way on l03/);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test('makes a track with the user\'s own ElevenLabs key, without vocals, and analyses it', decoding, async () => {
   const directory = await workspace();
   try {
@@ -382,6 +460,14 @@ test('lists the library, and says which tracks can put a lift on the line that t
 
       const plain = await run('music', directory, ['library', '--for', 'src/ep01.audio.json'], env);
       assert.match(plain.stdout, /does not fit: too short for this video/);
+
+      // One chapter of a long video is judged on its own: a track too short for the video can carry two lines of it.
+      const stretch = await run('music', directory, ['library', '--for', 'src/ep01.audio.json', '--from', 'l02', '--to', 'l03'], env);
+      assert.equal(stretch.code, 0, stretch.stderr);
+      assert.match(stretch.stdout, /^short .*\n.*\n.*\n    fits: long enough for these lines/m);
+      const outside = await run('music', directory, ['library', '--for', 'src/ep01.audio.json', '--from', 'l02', '--to', 'l03', '--lift', 'l04'], env);
+      assert.equal(outside.code, 1);
+      assert.match(outside.stderr, /"l04" is not a line of that stretch of src\/ep01\.audio\.json/);
     });
   } finally {
     await rm(directory, { recursive: true, force: true });

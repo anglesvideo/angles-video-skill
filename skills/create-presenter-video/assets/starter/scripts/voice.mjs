@@ -5,6 +5,9 @@
 //   node scripts/voice.mjs src/ep01.script.json
 //   node scripts/voice.mjs src/ep01.script.json --redo l03,l07
 //   node scripts/voice.mjs --providers
+//   node scripts/voice.mjs --voices [language]
+//       the narrators the Angles account can speak in: a language has more
+//       than one. Put the name of the one you want in "voice": { "id": … }
 //
 // The script names where the voice comes from:
 //
@@ -18,6 +21,10 @@
 //       sound only, or a camera take with picture and sound in one file
 //   "voice": { "provider": "none" }
 //       no sound; each line is given the time it takes to read its caption
+//
+// A line may carry `say`: the same sentence respelled for the voice, when a
+// name or an acronym is said differently from how it is written. The voice is
+// given `say`; captions and timing keep `text`.
 //
 // Timing is data, not code: `pause` on a line is the silence before it, `gap`
 // is the default pause, `tail` is the hold after the last line. Change them
@@ -33,6 +40,9 @@
 //       cut into line l06 — the earliest it can reach ("liftAt": <seconds> names one)
 //   "offset": <seconds> starts the track part-way in; "snap": false leaves
 //   the cuts where the pauses put them
+//   "music": [{ "src": "music/a.mp3" }, { "src": "music/b.mp3", "from": "c01", "lift": "c04" }]
+//       a video longer than one track: each takes over on its "from" line,
+//       and the cuts under it sit on its own beats
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join } from 'node:path';
 import { angles, durationOf, streamsOf } from './media.mjs';
@@ -148,9 +158,10 @@ function fail(message) {
 /**
  * Lays the measured lines end to end. With a `grid` — the moments, in video
  * time, where the music has a beat — each cut after the first waits for the
- * next one, and so does the end of the video.
+ * next one, and so does the end of the video. `snapEnd: false` is for a
+ * stretch another track follows: where it ends is the next track's business.
  */
-function layOut(lines, { gap, tail, cutLead, grid }) {
+function layOut(lines, { gap, tail, cutLead, grid, snapEnd = true }) {
   const nextOnGrid = moment => grid?.find(point => point >= moment - 0.04);
   let cursor = 0;
   const clips = lines.map(({ pause, ...clip }, index) => {
@@ -163,7 +174,7 @@ function layOut(lines, { gap, tail, cutLead, grid }) {
     cursor = at + clip.seconds;
     return { ...clip, at };
   });
-  return { clips, totalSeconds: round(nextOnGrid(cursor + tail) ?? cursor + tail) };
+  return { clips, totalSeconds: round((snapEnd ? nextOnGrid(cursor + tail) : undefined) ?? cursor + tail) };
 }
 
 /** Where cuts may land, in seconds of the track. */
@@ -179,9 +190,13 @@ function gridOf(analysis) {
   return points;
 }
 
-/** Fits the lines to the track the script names. */
-function cutToMusic(script, lines, timing, notes) {
-  const { src, lift, liftAt, snap } = script.music;
+/**
+ * Fits `lines` to one track. Times are counted from where the track takes
+ * over: the start of the video, or the cut into the first of its lines.
+ * `then` names what follows this track's last line — nothing, when it runs to
+ * the end of the video, or the line the next track takes over on.
+ */
+function fitTrack({ src, lift, liftAt, offset: asked, snap }, lines, timing, notes, then = null) {
   const file = join('public', src);
   if (!existsSync(file)) fail(`No music at ${file}. "music.src" is a path under public/.`);
   const analysis = analyse(file);
@@ -192,15 +207,22 @@ function cutToMusic(script, lines, timing, notes) {
   const place = offset =>
     layOut(lines, {
       ...timing,
+      snapEnd: !then,
       grid: snap === false ? null : points.map(point => round(point - offset)).filter(point => point >= 0),
     });
 
-  let offset = script.music.offset ?? 0;
+  let offset = asked ?? 0;
   if (lift) {
     const index = lines.findIndex(line => line.id === lift);
-    if (index < 0) fail(`"music.lift" names line "${lift}", which is not in the script.`);
+    if (index < 0) {
+      fail(
+        then
+          ? `"lift" names line "${lift}", which ${src} does not play under: it gives way on ${then}.`
+          : `"music.lift" names line "${lift}", which is not in the script.`
+      );
+    }
     const cutOf = layout => (index === 0 ? 0 : layout.clips[index].at - timing.cutLead);
-    const loose = layOut(lines, { ...timing, grid: null });
+    const loose = layOut(lines, { ...timing, grid: null, snapEnd: false });
     // Of the track's lifts, the earliest one the video can reach and still
     // finish before the track does: that keeps the track's own build-up in
     // front of the turn, instead of dropping the video into its last minute.
@@ -229,7 +251,7 @@ function cutToMusic(script, lines, timing, notes) {
       }
       if (offset < 0) {
         notes.push(`The lift at ${target}s of ${src} comes before the video reaches ${lift}. The track starts from its beginning instead; choose a later lift with "liftAt", or an earlier line.`);
-        offset = script.music.offset ?? 0;
+        offset = asked ?? 0;
       }
     }
   }
@@ -237,7 +259,12 @@ function cutToMusic(script, lines, timing, notes) {
   offset = round(Math.max(0, offset));
   const layout = place(offset);
   if (offset + layout.totalSeconds > analysis.seconds) {
-    notes.push(`${src} ends ${round(offset + layout.totalSeconds - analysis.seconds, 1)}s before the video does. Start it earlier, loop it, or use a longer track.`);
+    const short = round(offset + layout.totalSeconds - analysis.seconds, 1);
+    notes.push(
+      then
+        ? `${src} ends ${short}s before ${then} takes over. Start it earlier, give it fewer lines, or use a longer track.`
+        : `${src} ends ${short}s before the video does. Start it earlier, loop it, or use a longer track.`
+    );
   }
   return {
     ...layout,
@@ -250,6 +277,62 @@ function cutToMusic(script, lines, timing, notes) {
   };
 }
 
+/** Fits the lines to the one track the script names. */
+function cutToMusic(script, lines, timing, notes) {
+  return fitTrack(script.music, lines, timing, notes);
+}
+
+/**
+ * Fits the lines to a list of tracks, each taking over on the line its `from`
+ * names and cut to on its own. The video is laid out a stretch at a time: a
+ * stretch ends where the next track's first line is cut to.
+ */
+function cutToBeds(script, lines, timing, notes) {
+  const starts = script.music.map((bed, order) => {
+    if (!bed?.src) fail('Every track in "music" needs a "src".');
+    const index = bed.from === undefined && order === 0 ? 0 : lines.findIndex(line => line.id === bed.from);
+    if (index < 0) fail(`"from" on ${bed.src} names line "${bed.from ?? ''}", which is not in the script. Every track after the first says which line it takes over on.`);
+    return index;
+  });
+  starts.forEach((index, order) => {
+    if (order > 0 && index <= starts[order - 1]) fail(`The tracks in "music" are listed out of order: ${script.music[order].src} takes over before ${script.music[order - 1].src} has started.`);
+  });
+
+  // Lines before the first track play with no music under them.
+  const stretches = [...(starts[0] > 0 ? [{ bed: null, first: 0 }] : []), ...script.music.map((bed, order) => ({ bed, first: starts[order] }))];
+  const clips = [];
+  const beds = [];
+  let origin = 0;
+  let voiceEnd = 0;
+  stretches.forEach(({ bed, first }, order) => {
+    const next = stretches[order + 1];
+    const own = lines.slice(first, next ? next.first : lines.length);
+    // After the first stretch, time is counted from the cut into its first line.
+    if (first > 0) {
+      origin = round(voiceEnd + (own[0].pause ?? timing.gap) - timing.cutLead);
+      own[0] = { ...own[0], pause: timing.cutLead };
+    }
+    // A stretch lasts until the next one's first line is cut to; the last one holds the closing frame.
+    const tail = next ? Math.max(0, (lines[next.first].pause ?? timing.gap) - timing.cutLead) : timing.tail;
+    const fit = bed
+      ? fitTrack(bed, own, { ...timing, tail }, notes, next ? lines[next.first].id : null)
+      : layOut(own, { ...timing, tail, grid: null, snapEnd: false });
+    for (const clip of fit.clips) clips.push({ ...clip, at: round(origin + clip.at) });
+    const last = fit.clips[fit.clips.length - 1];
+    voiceEnd = origin + last.at + last.seconds;
+    if (bed) {
+      beds.push({
+        ...fit.music,
+        from: origin,
+        until: round(origin + fit.totalSeconds),
+        beats: fit.music.beats.map(beat => round(origin + beat)),
+      });
+    }
+    if (!next) origin = round(origin + fit.totalSeconds);
+  });
+  return { clips, totalSeconds: origin, beds };
+}
+
 function listProviders() {
   for (const [name, provider] of Object.entries(PROVIDERS)) {
     const present = process.env[provider.key] ? 'set' : 'not set';
@@ -257,6 +340,26 @@ function listProviders() {
   }
   process.stdout.write('recorded    the person records each line themselves\n');
   process.stdout.write('none        no voice; captions carry the words\n');
+}
+
+/** The narrators on offer through the Angles account, a language at a time. */
+async function listVoices(language) {
+  if (!process.env.ANGLES_API_KEY) fail('ANGLES_API_KEY is not set. The narrators listed here are the ones an Angles account speaks in.');
+  let reply;
+  try {
+    reply = await angles('GET', '/audio/voices');
+  } catch (error) {
+    fail(`Angles could not list its voices: ${error.message}`);
+  }
+  const voices = (reply?.voices ?? []).filter(voice => !language || voice.language.toLowerCase() === language.toLowerCase());
+  if (!voices.length) fail(language ? `Angles has no voice for "${language}".` : 'Angles listed no voices.');
+  const wide = Math.max(...voices.map(voice => voice.voice.length));
+  for (const voice of voices) {
+    process.stdout.write(
+      `${voice.language.padEnd(6)} ${voice.voice.padEnd(wide)}  ${voice.description ?? voice.label ?? ''}${voice.default ? '  (the language\'s own)' : ''}\n`
+    );
+  }
+  process.stdout.write('In the script: "voice": { "provider": "angles", "language": "<language>", "id": "<name>" } — leave "id" out for the language\'s own.\n');
 }
 
 function findRecording(directory, id) {
@@ -281,6 +384,9 @@ function readScript(scriptPath) {
       fail(`Every line needs an "id" and a "text": ${JSON.stringify(line)}`);
     }
     if (!/^[A-Za-z0-9_-]+$/.test(line.id)) fail(`Line id "${line.id}" becomes a file name; use letters, digits, - and _.`);
+    if (line.say !== undefined && (typeof line.say !== 'string' || !line.say.trim())) {
+      fail(`"say" on ${line.id} is what the voice is given in place of "text"; leave it out when the two are the same.`);
+    }
     if (seen.has(line.id)) fail(`Line id "${line.id}" is used twice.`);
     seen.add(line.id);
   }
@@ -290,10 +396,11 @@ function readScript(scriptPath) {
 async function main() {
   const args = process.argv.slice(2);
   if (args.includes('--providers')) return listProviders();
+  if (args.includes('--voices')) return listVoices(args[args.indexOf('--voices') + 1]);
 
   const scriptPath = args.find(arg => !arg.startsWith('--'));
   if (!scriptPath || !scriptPath.endsWith('.script.json')) {
-    fail('usage: node scripts/voice.mjs src/<video>.script.json [--redo <line,line> | --force]\n       node scripts/voice.mjs --providers');
+    fail('usage: node scripts/voice.mjs src/<video>.script.json [--redo <line,line> | --force]\n       node scripts/voice.mjs --providers\n       node scripts/voice.mjs --voices [language]');
   }
   const redoFlag = args.indexOf('--redo');
   const redo = new Set(redoFlag >= 0 ? (args[redoFlag + 1] || '').split(',').filter(Boolean) : []);
@@ -339,19 +446,22 @@ async function main() {
     let file = null;
     let kind = 'silent';
     let speaker = before?.speaker;
+    // A caption corrected on screen is not a line said differently.
+    const spoken = line.say ?? line.text;
+    const sameWords = !before || (before.say ?? before.text) === spoken;
 
     if (provider) {
       const directory = join('public', 'voice', name);
       file = join(directory, `${line.id}.mp3`);
       const reusable =
-        existsSync(file) && !force && !redo.has(line.id) && (!before || (before.text === line.text && sameVoice));
+        existsSync(file) && !force && !redo.has(line.id) && (!before || (sameWords && sameVoice));
       if (!reusable) {
         if (!key) fail(`${provider.key} is not set, and ${line.id} has not been voiced yet.`);
         mkdirSync(directory, { recursive: true });
         try {
-          const spoken = await provider.speak(line.text, voice, key);
-          writeFileSync(file, Buffer.isBuffer(spoken) ? spoken : spoken.bytes);
-          speaker = Buffer.isBuffer(spoken) ? undefined : spoken.speaker;
+          const made = await provider.speak(spoken, voice, key);
+          writeFileSync(file, Buffer.isBuffer(made) ? made : made.bytes);
+          speaker = Buffer.isBuffer(made) ? undefined : made.speaker;
         } catch (error) {
           fail(`${providerName} could not voice ${line.id}: ${error.message}`);
         }
@@ -376,6 +486,7 @@ async function main() {
     measured.push({
       id: line.id,
       text: line.text,
+      ...(line.say ? { say: line.say } : {}),
       src: file ? file.split(/[\\/]/).slice(1).join('/') : null,
       kind: file ? kind : 'silent',
       seconds,
@@ -398,13 +509,20 @@ async function main() {
 
   // `cutLead` is how long before a line is spoken its picture takes over.
   const timing = { gap: script.gap ?? 0.35, tail: script.tail ?? 2, cutLead: script.cutLead ?? 0.2 };
-  const { clips, totalSeconds, music = null } = script.music?.src
-    ? cutToMusic(script, measured, timing, notes)
-    : layOut(measured, { ...timing, grid: null });
+  const {
+    clips,
+    totalSeconds,
+    music = null,
+    beds,
+  } = Array.isArray(script.music)
+    ? cutToBeds(script, measured, timing, notes)
+    : script.music?.src
+      ? cutToMusic(script, measured, timing, notes)
+      : layOut(measured, { ...timing, grid: null });
 
   writeFileSync(
     manifestPath,
-    `${JSON.stringify({ provider: providerName, voice, totalSeconds, cutLead: timing.cutLead, music, clips }, null, 2)}\n`
+    `${JSON.stringify({ provider: providerName, voice, totalSeconds, cutLead: timing.cutLead, music, ...(beds ? { beds } : {}), clips }, null, 2)}\n`
   );
 
   for (const clip of clips) {
@@ -416,6 +534,11 @@ async function main() {
   if (music) {
     process.stdout.write(
       `music ${music.src}: ${music.bpm} BPM, starts ${music.offset.toFixed(2)}s into the track, ${music.beats.length} beats under the video\n`
+    );
+  }
+  for (const bed of beds ?? []) {
+    process.stdout.write(
+      `music ${bed.src}: from ${bed.from.toFixed(2)}s to ${bed.until.toFixed(2)}s of the video, ${bed.bpm} BPM, starts ${bed.offset.toFixed(2)}s into the track\n`
     );
   }
   for (const note of notes) process.stdout.write(`note: ${note}\n`);

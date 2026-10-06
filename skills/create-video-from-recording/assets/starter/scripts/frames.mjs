@@ -12,11 +12,14 @@
 //
 // Frames land in out/frames/<video>/, named by time so they sort in order.
 // --size <px> sets the longest edge (default 1280); --out <dir> moves them.
+// --sheet also tiles them, twelve to a page, into sheet-01.jpg, sheet-02.jpg…
+// beside the frames: a long video is a hundred frames, and nine pages are
+// quicker to look through. Open the single frame where a page shows a problem.
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
-import { run, videoInfo } from './media.mjs';
+import { run, tile, videoInfo } from './media.mjs';
 
-const OWN_FRAME = /^t\d{3}\.\d-[a-z0-9_-]+\.jpg$/i;
+const OWN_FRAME = /^(t\d{3}\.\d-[a-z0-9_-]+|sheet-\d+)\.jpg$/i;
 
 function fail(message) {
   process.stderr.write(`${message}\n`);
@@ -31,7 +34,7 @@ function option(args, name) {
 const args = process.argv.slice(2);
 const video = args.find((arg, index) => !arg.startsWith('--') && !(args[index - 1] || '').startsWith('--'));
 if (!video) {
-  fail('usage: node scripts/frames.mjs <video> (--beats <audio.json> | --at <s,s,…> | --every <seconds>) [--size <px>] [--out <dir>]');
+  fail('usage: node scripts/frames.mjs <video> (--beats <audio.json> | --at <s,s,…> | --every <seconds>) [--sheet] [--size <px>] [--out <dir>]');
 }
 if (!existsSync(video)) fail(`No video at ${video}.`);
 
@@ -100,6 +103,9 @@ for (const moment of moments) {
   written.push(file);
 }
 
+const sheets = args.includes('--sheet') ? tile(written, directory, { portrait: info.height > info.width }) : [];
+
 process.stdout.write(
   `${info.width}x${info.height}, ${info.seconds.toFixed(1)}s — ${written.length} frames:\n${written.join('\n')}\n`
 );
+if (sheets.length) process.stdout.write(`${sheets.length} sheets:\n${sheets.join('\n')}\n`);

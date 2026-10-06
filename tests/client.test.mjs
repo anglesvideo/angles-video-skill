@@ -6,7 +6,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { SHARED_FILES } from '../scripts/sync-client.mjs';
+import { SHARED_FILES, SKILLS_WITHOUT_THE_CLIENT, sharedFilesFor } from '../scripts/sync-client.mjs';
 
 const clientPath = fileURLToPath(
   new URL('../skills/create-launch-video/scripts/angles.mjs', import.meta.url)
@@ -44,9 +44,10 @@ test('every Skill ships the same client and API reference', async () => {
 // `src/` is where a change is made. A copy edited by hand fails here rather
 // than shipping a client the CLI and the Skills disagree about.
 test('every Skill copy matches its source in src/', async () => {
-  for (const [sharedPath, skillPath] of SHARED_FILES) {
-    const source = await readFile(fileURLToPath(new URL(`../${sharedPath}`, import.meta.url)), 'utf8');
-    for (const skill of SKILLS_SHARING_THE_CLIENT) {
+  for (const skill of [...SKILLS_SHARING_THE_CLIENT, ...SKILLS_WITHOUT_THE_CLIENT]) {
+    for (const sharedPath of sharedFilesFor(skill)) {
+      const skillPath = SHARED_FILES.get(sharedPath);
+      const source = await readFile(fileURLToPath(new URL(`../${sharedPath}`, import.meta.url)), 'utf8');
       const copy = await readFile(
         fileURLToPath(new URL(`../skills/${skill}/${skillPath}`, import.meta.url)),
         'utf8'
@@ -56,6 +57,20 @@ test('every Skill copy matches its source in src/', async () => {
         source,
         `skills/${skill}/${skillPath} is out of date with ${sharedPath} — run: npm run sync-client`
       );
+    }
+  }
+});
+
+// A Skill with no hosted path has nothing to call the client for; carrying it
+// would be a script to review that nothing uses.
+test('a Skill with no hosted path ships no client', async () => {
+  for (const skill of SKILLS_WITHOUT_THE_CLIENT) {
+    for (const file of [...SKILL_FILES, 'references/hosted-render.md']) {
+      const present = await readFile(fileURLToPath(new URL(`../skills/${skill}/${file}`, import.meta.url)), 'utf8').then(
+        () => true,
+        () => false
+      );
+      assert.equal(present, false, `skills/${skill}/${file} belongs to the hosted path, which ${skill} does not have`);
     }
   }
 });

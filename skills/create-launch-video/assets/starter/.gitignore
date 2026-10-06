@@ -4,3 +4,6 @@ out/
 # their owner decides otherwise.
 public/takes/
 public/footage/
+# Copies of sources read for a video: other people's text, kept to check
+# against, not to publish.
+research/

@@ -1,6 +1,6 @@
 ---
 name: create-launch-video
-description: Write and render a product video for the repository the user is working in, or for a product page they name. You design every scene yourself in Remotion from the product's real facts — its numbers, commands, and interface — and render it on the user's machine; no template is involved. Use when a user asks to make, generate, render, or draft a product video, launch video, feature announcement, update video, or social video from a repository or a product URL, or asks for the next video in a series already started. Gather facts, offer angles, write and voice the script, write the look once and the scenes for this video, check the rendered frames, and return a finished mp4 with posting copy. Falls back to an Angles-hosted template render only when asked or when local rendering is impossible. For a video built from a screen recording, use create-video-from-recording; for one the user presents on camera, use create-presenter-video.
+description: Write and render a product video for the repository the user is working in, or for a product page they name. You design every scene yourself in Remotion from the product's real facts — its numbers, commands, and interface — and render it on the user's machine; no template is involved. Use when a user asks to make, generate, render, or draft a product video, launch video, feature announcement, update video, or social video from a repository or a product URL, or asks for the next video in a series already started. Gather facts, offer angles, write and voice the script, write the look once and the scenes for this video, check the rendered frames, and return a finished mp4 with posting copy. Falls back to an Angles-hosted template render only when asked or when local rendering is impossible. For a video built from a screen recording, use create-video-from-recording; for one the user presents on camera, use create-presenter-video; for one about a subject rather than a product, use create-video-essay.
 ---
 
 # Create a product video
@@ -15,7 +15,7 @@ Local rendering needs Node.js 18 or newer, and the user's agreement to install n
 
 Take the hosted path in [references/hosted-render.md](references/hosted-render.md) instead only when the user asks for an Angles-hosted or template video, or when the machine cannot do the above. Say which path you are taking when it is not the local one.
 
-If the user has a screen recording they want in the video, use the `create-video-from-recording` Skill. If they want to appear on camera, use `create-presenter-video`.
+If the user has a screen recording they want in the video, use the `create-video-from-recording` Skill. If they want to appear on camera, use `create-presenter-video`. If the video is about a subject rather than a product — a piece of history, an idea, how something works — use `create-video-essay`.
 
 ## 2. Read the source
 

@@ -142,6 +142,51 @@ test('reports which keys are set without printing them', async () => {
   }
 });
 
+test('lists the narrators an Angles account speaks in, a language at a time', async () => {
+  const directory = await workspace({ lines: [] });
+  try {
+    await withServer(
+      (request, response) => {
+        response.setHeader('content-type', 'application/json');
+        response.end(
+          JSON.stringify({
+            voices: [
+              { language: 'en', label: 'English', voice: 'en-US-AndrewMultilingualNeural', description: 'Man', default: true },
+              { language: 'zh-CN', label: '简体中文', voice: 'zh-CN-XiaoxiaoNeural', description: 'Woman', default: true },
+              { language: 'zh-CN', label: '简体中文', voice: 'zh-CN-YunyangNeural', description: 'Man', default: false },
+            ],
+          })
+        );
+      },
+      async (baseUrl, requests) => {
+        const env = { ANGLES_API_KEY: testKey, ANGLES_API_BASE_URL: baseUrl };
+        const chinese = await runVoice(directory, ['--voices', 'zh-CN'], env);
+        assert.equal(chinese.code, 0, chinese.stderr);
+        assert.equal(requests[0].method, 'GET');
+        assert.equal(requests[0].url, '/audio/voices');
+        assert.equal(requests[0].headers.authorization, `Bearer ${testKey}`);
+        assert.match(chinese.stdout, /^zh-CN  zh-CN-XiaoxiaoNeural  Woman  \(the language's own\)\nzh-CN  zh-CN-YunyangNeural   Man\n/);
+        assert.doesNotMatch(chinese.stdout, /en-US/);
+        assert.match(chinese.stdout, /"id": "<name>"/);
+        assert.ok(!chinese.stdout.includes(testKey));
+
+        const all = await runVoice(directory, ['--voices'], env);
+        assert.match(all.stdout, /^en     en-US-AndrewMultilingualNeural  Man  \(the language's own\)$/m);
+
+        const none = await runVoice(directory, ['--voices', 'ko'], env);
+        assert.equal(none.code, 1);
+        assert.match(none.stderr, /Angles has no voice for "ko"/);
+      }
+    );
+
+    const unset = await runVoice(directory, ['--voices']);
+    assert.equal(unset.code, 1);
+    assert.match(unset.stderr, /ANGLES_API_KEY is not set/);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test('voices each line through OpenAI and measures what comes back', measuring, async () => {
   const directory = await workspace(twoLines({ provider: 'openai', id: 'ash' }));
   try {
@@ -261,6 +306,62 @@ test('voices again only the lines that changed', measuring, async () => {
         assert.equal(requests.length, 6);
       }
     );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('gives the voice `say` and keeps `text` for the caption', measuring, async () => {
+  const script = twoLines({ provider: 'openai' });
+  script.lines[0] = { id: 'l01', text: 'Zhai Zuojun lit two candles.', say: 'Jai Dzwo-jwun lit two candles.' };
+  const directory = await workspace(script);
+  try {
+    await withServer(
+      (request, response) => response.end(wav(1)),
+      async (baseUrl, requests) => {
+        const env = { OPENAI_API_KEY: testKey, OPENAI_BASE_URL: baseUrl };
+        await runVoice(directory, undefined, env);
+        assert.equal(requests[0].body.input, 'Jai Dzwo-jwun lit two candles.');
+        const [first, second] = (await readTrack(directory)).clips;
+        assert.equal(first.text, 'Zhai Zuojun lit two candles.');
+        assert.equal(first.say, 'Jai Dzwo-jwun lit two candles.');
+        assert.equal('say' in second, false);
+
+        // A caption corrected on screen is not a line said differently.
+        script.lines[0].text = 'Zhai Zuojun lit the two candles.';
+        await setScript(directory, script);
+        await runVoice(directory, undefined, env);
+        assert.equal(requests.length, 2);
+        assert.equal((await readTrack(directory)).clips[0].text, 'Zhai Zuojun lit the two candles.');
+
+        // A new respelling is: that line, and only that line, is voiced again.
+        script.lines[0].say = 'Jie Dzwo-jwun lit the two candles.';
+        await setScript(directory, script);
+        await runVoice(directory, undefined, env);
+        assert.equal(requests.length, 3);
+        assert.equal(requests[2].body.input, 'Jie Dzwo-jwun lit the two candles.');
+
+        // Taking the respelling away goes back to saying the caption.
+        delete script.lines[0].say;
+        await setScript(directory, script);
+        await runVoice(directory, undefined, env);
+        assert.equal(requests.length, 4);
+        assert.equal(requests[3].body.input, 'Zhai Zuojun lit the two candles.');
+      }
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('refuses an empty `say`', async () => {
+  const script = twoLines({ provider: 'none' });
+  script.lines[0].say = ' ';
+  const directory = await workspace(script);
+  try {
+    const result = await runVoice(directory);
+    assert.equal(result.code, 1);
+    assert.match(result.stderr, /"say" on l01 is what the voice is given in place of "text"/);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
