@@ -143,6 +143,11 @@ const readings = facts
 if (readings.length) look.push(`Readings, not records — is each worded as one? ${readings.join(' · ')}`);
 if (unchecked.length) look.push(`Quotations with no copy of their source under research/ to check against: ${unchecked.join(', ')}`);
 if (long.length) look.push(`Long for one line: ${long.join(', ')}`);
+// A page that is edited where it stands has no year of its own, and the year it was read gets typed in instead.
+const readYear = sources.filter(source => source.url && source.kind !== 'press' && source.year && String(source.read ?? '').startsWith(`${source.year}-`));
+if (readYear.length) {
+  look.push(`Dated the year they were read — is that when each was published? A page with no year of its own takes no "year": ${readYear.map(source => source.id).join(', ')}`);
+}
 
 process.stdout.write(`${name}: ${lines.length} lines, ${facts.length} facts, ${sources.length} sources\n`);
 if (fix.length) process.stdout.write(`\nMust fix (${fix.length}):\n${fix.map(item => `  ${item}`).join('\n')}\n`);

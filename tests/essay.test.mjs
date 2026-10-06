@@ -219,9 +219,11 @@ test('check.mjs refuses what points at nothing, and what is printed but was neve
 test('check.mjs asks for a look at what it cannot settle', async () => {
   const directory = await workspace();
   try {
-    await episode(directory, ({ script, research }) => {
+    await episode(directory, ({ facts, script, research }) => {
       delete research.s01;
       delete script.lines[2].pause;
+      Object.assign(facts.sources[0], { url: 'https://example.org/text', year: 1938, read: '2026-10-06' });
+      Object.assign(facts.sources[1], { url: 'https://example.org/wiki/A_history', kind: 'reference', year: 2026, read: '2026-10-06' });
       script.lines[3].text = '一'.repeat(41);
       script.lines[3].say = '短';
     });
@@ -230,6 +232,7 @@ test('check.mjs asks for a look at what it cannot settle', async () => {
     assert.match(result.stdout, /b01 opens a chapter with no room for its card/);
     assert.match(result.stdout, /Quotations with no copy of their source under research\/ to check against: f02/);
     assert.match(result.stdout, /Long for one line: b02/);
+    assert.match(result.stdout, /Dated the year they were read .* takes no "year": s02\n/);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

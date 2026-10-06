@@ -7,6 +7,7 @@ export type Source = {
   id: string;
   title: string;
   author?: string;
+  /** When the work was published. A page with no year of its own has none — never the year it was read. */
   year?: number;
   edition?: string;
   url?: string;
@@ -35,7 +36,7 @@ export const cited = (script: Script, facts: Facts): Source[] => {
   return (facts.sources ?? []).filter(source => under.has(source.id));
 };
 
-/** One source as a line of a list: who, what, where it appeared, when. */
+/** One source as a line of a list: who, what, where it appeared, and when — where it has a year of its own. */
 export const citation = (source: Source) => [source.author, source.title, source.edition, source.year].filter(Boolean).join(', ');
 
 /** The credit lines the pictures' licences ask for. */

@@ -71,6 +71,8 @@ This replaces step 2 of the workflow. Before writing a word, read about the subj
 
 A source's `kind` is `primary` (the text itself, or a record made at the time), `scholarly`, `reference`, or `press`. A fact's `standing` is `documented`, `disputed`, or `interpretation`.
 
+A source's `year` is the year the work was published, and the closing scene prints it. A page that is edited where it stands — an encyclopedia article online, an institution's page — has no such year: leave `year` out. `read` is the day you read it; it is never a source's date.
+
 Read each source with `node scripts/read.mjs <url or file> --as <source id>`. It keeps the page's text under `research/`, in whatever encoding the page was written in; quote from that copy, and `scripts/check.mjs` will hold every quotation against it. `research/` stays on this machine — it is other people's text, and the workspace keeps it out of git.
 
 `screen` holds whatever will be printed in the picture — each date, figure, and quotation once, with the fact it rests on. The facts are sentences; scenes read their numbers and their quoted words from `screen`, so nothing on screen is typed in twice, or typed in wrong.
@@ -166,7 +168,7 @@ The closing scene belongs among the four: it is where the sources are listed.
 - **An argument is a diagram** — the stages, the forces, what led to what — built up as the voice goes through it.
 - **A picture says what it is.** An archive photograph carries its place and year from the facts file. One taken somewhere else, or years apart from what the line describes, says so.
 - **A chapter card** sits in the pause before a chapter's first line, as a layer above the scenes: from the end of the previous line's voice to the start of the next.
-- **The video ends on its sources.** After the answer has been held, the last scene lists what the episode rests on: each source's author, title, and year, read from the facts file with `cited(script, facts)` in `src/sources.ts`, and the credits its pictures' licences ask for. Set it large enough to read on a phone and hold it long enough to read — about a second a source, and never under five. That time is the script's `tail`. "See the description" is not a source list: a description is lost the first time the video is shared. There is no address to send anyone to.
+- **The video ends on its sources.** After the answer has been held, the last scene lists what the episode rests on: each source's author, title, and — where the work has one — year, read from the facts file with `cited(script, facts)` in `src/sources.ts`, and the credits its pictures' licences ask for. Set it large enough to read on a phone and hold it long enough to read — about a second a source, and never under five. That time is the script's `tail`. "See the description" is not a source list: a description is lost the first time the video is shared. There is no address to send anyone to.
 
 ## 8. Check
 
