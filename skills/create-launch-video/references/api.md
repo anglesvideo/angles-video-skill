@@ -54,6 +54,16 @@ Music and sound effects are not generated per request. They come from a library 
 
 Every `url` is a plain download; fetch it without the API key. `503` means the library could not be read.
 
+## Pictures for videos you render yourself
+
+The other thing a video written as code cannot supply: a photograph or an illustration. `scripts/image.mjs` in the workspace calls this, so there is no client command for it.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /images` | Make one picture. Body `{ prompt, aspect? }`: `prompt` up to 1500 characters, saying what the picture shows and how it is drawn; `aspect` one of `16:9` (the default), `9:16`, `1:1`, `4:3`, `3:4`. Returns `{ image, format, aspect, provider, model, remaining }` with `image` base64-encoded and `format` one of `jpg`, `png`, `webp`. |
+
+One request is one picture, and it can take half a minute. The reply is the file itself rather than a link, so nothing a caller keeps can stop working. `model` names what drew it: record it, and that the picture was made, beside the file. Pictures do not spend a video allowance; an account has a daily limit instead. `remaining` is how many are left in the current 24 hours, and going over returns `429` with `IMAGE_DAILY_LIMIT_REACHED` and the numbers. `503` means the picture could not be made — the provider failed, or refused the prompt — and is not counted against the limit: reword the prompt or try again.
+
 ## Presenter videos
 
 A presenter video is voiced by a person on camera instead of the synthesised voice, with their picture in a round window over the scenes. The person reads the script one sentence at a time, and each sentence is one scene.

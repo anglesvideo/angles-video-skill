@@ -129,7 +129,9 @@ for (const [key, entry] of Object.entries(book.screen ?? {})) {
 
 // Pictures.
 for (const image of book.images ?? []) {
-  if (!image.licence) fix.push(`Image ${image.file} has no licence recorded`);
+  // A made picture has no licence to record; it has to say that it was made.
+  if (!image.licence && !image.generated) fix.push(`Image ${image.file} has no licence recorded`);
+  if (image.generated && !image.credit) fix.push(`Image ${image.file} was made, and has no credit that says so`);
   if (image.file && !existsSync(join('public', image.file))) fix.push(`Image ${image.file} is not in public/`);
 }
 
@@ -141,6 +143,8 @@ const readings = facts
   .filter(fact => used.has(fact.id) && (fact.standing === 'disputed' || fact.standing === 'interpretation'))
   .map(fact => `${fact.id} ${fact.standing} (${usedBy(fact.id)})`);
 if (readings.length) look.push(`Readings, not records — is each worded as one? ${readings.join(' · ')}`);
+const made = (book.images ?? []).filter(image => image.generated).map(image => image.file);
+if (made.length) look.push(`Made pictures — does each say "illustration" on screen, and is none of a real person, or shown as a photograph or a document? ${made.join(' · ')}`);
 if (unchecked.length) look.push(`Quotations with no copy of their source under research/ to check against: ${unchecked.join(', ')}`);
 if (long.length) look.push(`Long for one line: ${long.join(', ')}`);
 // A page that is edited where it stands has no year of its own, and the year it was read gets typed in instead.

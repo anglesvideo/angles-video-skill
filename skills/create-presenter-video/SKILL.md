@@ -11,7 +11,7 @@ The workflow is in [references/writing-the-video.md](references/writing-the-vide
 
 ## 1. Check the machine and say what is involved
 
-Local rendering needs Node.js 18 or newer, and the user's agreement to install npm packages and a headless browser into a workspace directory. Writing and rendering need no account; a synthesised voice and the music and sound-effect library come through the user's Angles account.
+Local rendering needs Node.js 18 or newer, and the user's agreement to install npm packages and a headless browser into a workspace directory. Writing and rendering need no account; a synthesised voice, the music and sound-effect library, and pictures that cannot be drawn as code come through the user's Angles account.
 
 Tell the user what they are signing up for before any work is done:
 

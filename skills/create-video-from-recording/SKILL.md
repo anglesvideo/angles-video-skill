@@ -13,7 +13,7 @@ This Skill is for a recording the user already has. To build a video from a repo
 
 ## 1. Check the machine and set up
 
-Local rendering needs Node.js 18 or newer, and the user's agreement to install npm packages and a headless browser into a workspace directory. Writing and rendering need no account; a synthesised voice and the music and sound-effect library come through the user's Angles account, and the recording is not uploaded anywhere.
+Local rendering needs Node.js 18 or newer, and the user's agreement to install npm packages and a headless browser into a workspace directory. Writing and rendering need no account; a synthesised voice, the music and sound-effect library, and pictures that cannot be drawn as code come through the user's Angles account, and the recording is not uploaded anywhere.
 
 Take the hosted path in [references/hosted-render.md](references/hosted-render.md) instead only when the user asks for an Angles-hosted or template video, or when the machine cannot do the above. That path uploads the recording, so say so before taking it.
 

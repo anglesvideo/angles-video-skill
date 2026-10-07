@@ -8,6 +8,7 @@
     "voice": "node scripts/voice.mjs",
     "music": "node scripts/music.mjs",
     "sfx": "node scripts/sfx.mjs",
+    "image": "node scripts/image.mjs",
     "frames": "node scripts/frames.mjs",
     "stills": "node scripts/stills.mjs",
     "finish": "node scripts/finish.mjs"

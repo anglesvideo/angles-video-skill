@@ -11,7 +11,7 @@ The workflow is in [references/writing-the-video.md](references/writing-the-vide
 
 ## 1. Check the machine
 
-Local rendering needs Node.js 18 or newer, and the user's agreement to install npm packages and a headless browser into a workspace directory. Writing and rendering need no account. A synthesised voice, and a library of music and sound effects, come through the user's Angles account when `ANGLES_API_KEY` is set; a provider key of their own, or their own files, work without one.
+Local rendering needs Node.js 18 or newer, and the user's agreement to install npm packages and a headless browser into a workspace directory. Writing and rendering need no account. A synthesised voice, a library of music and sound effects, and pictures that cannot be drawn as code come through the user's Angles account when `ANGLES_API_KEY` is set; a provider key of their own, or their own files, work without one.
 
 Take the hosted path in [references/hosted-render.md](references/hosted-render.md) instead only when the user asks for an Angles-hosted or template video, or when the machine cannot do the above. Say which path you are taking when it is not the local one.
 
@@ -65,4 +65,4 @@ After that, carry on through voice, music, look, scenes, check, and finish witho
 
 Return the path to `out/epNN.final.mp4` with its length and resolution, say what you checked, and include a short caption and one post for the platform it is going to. Tell them that asking for another video reuses the same look, so the next one starts from the script.
 
-The video is rendered on this machine. The only thing this workflow sends anywhere is the script text, to the voice service the user chose — and, if they asked for new music or a new sound made with their own provider key, its description. With a recorded voice or none, nothing is sent at all.
+The video is rendered on this machine. The only thing this workflow sends anywhere is the script text, to the voice service the user chose — and the description of anything made for the video: a picture made through their Angles account, or new music or a new sound made with their own provider key. With a recorded voice or none, and no picture made, nothing is sent at all.

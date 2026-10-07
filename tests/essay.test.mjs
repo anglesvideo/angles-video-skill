@@ -195,7 +195,10 @@ test('check.mjs refuses what points at nothing, and what is printed but was neve
       facts.facts[2].sources = ['s07'];
       facts.screen.question.value = 'nobody says why.';
       facts.screen.orphan = { value: 3 };
-      facts.images = [{ file: 'images/portrait.jpg', shows: 'A portrait' }];
+      facts.images = [
+        { file: 'images/portrait.jpg', shows: 'A portrait' },
+        { file: 'images/night.jpg', shows: 'The harbour that night, as an illustration', generated: true },
+      ];
     });
     const result = await run('check', directory, ['src/ep01.script.json']);
     assert.equal(result.code, 1);
@@ -208,6 +211,7 @@ test('check.mjs refuses what points at nothing, and what is printed but was neve
       /screen\.orphan names no fact/,
       /Image images\/portrait\.jpg has no licence recorded/,
       /Image images\/portrait\.jpg is not in public\//,
+      /Image images\/night\.jpg was made, and has no credit that says so/,
     ]) {
       assert.match(result.stdout, expected);
     }
@@ -226,12 +230,18 @@ test('check.mjs asks for a look at what it cannot settle', async () => {
       Object.assign(facts.sources[1], { url: 'https://example.org/wiki/A_history', kind: 'reference', year: 2026, read: '2026-10-06' });
       script.lines[3].text = '一'.repeat(41);
       script.lines[3].say = '短';
+      facts.images = [{ file: 'images/night.jpg', shows: 'The harbour that night', generated: true, credit: 'Illustration: generated image' }];
     });
+    await mkdir(join(directory, 'public', 'images'), { recursive: true });
+    await writeFile(join(directory, 'public', 'images', 'night.jpg'), 'jpeg');
     const result = await run('check', directory, ['src/ep01.script.json']);
     assert.equal(result.code, 0, result.stdout);
     assert.match(result.stdout, /b01 opens a chapter with no room for its card/);
     assert.match(result.stdout, /Quotations with no copy of their source under research\/ to check against: f02/);
     assert.match(result.stdout, /Long for one line: b02/);
+    // A made picture needs no licence, and cannot be checked from here: it is put in front of a person.
+    assert.doesNotMatch(result.stdout, /night\.jpg has no licence/);
+    assert.match(result.stdout, /Made pictures — does each say "illustration" on screen.*images\/night\.jpg/);
     assert.match(result.stdout, /Dated the year they were read .* takes no "year": s02\n/);
   } finally {
     await rm(directory, { recursive: true, force: true });

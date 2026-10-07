@@ -38,6 +38,7 @@ The starter is mechanics only:
 - `scripts/voice.mjs` — voices the script and writes the timeline, cut to the music when there is any.
 - `scripts/music.mjs` — finds a track's tempo, beats, and lifts, and gets a track from the Angles library.
 - `scripts/sfx.mjs` — gets sound effects from the Angles library.
+- `scripts/image.mjs` — makes a picture that cannot be drawn as code: an illustration, a setting, a cover.
 - `scripts/stills.mjs` — renders single frames before there is a video: a few pictures to show early, or one scene to look at after changing it.
 - `scripts/render.mjs` — renders the video in parts and joins them, so changing one scene costs one part.
 - `scripts/frames.mjs` — pulls frames out of a video so you can look at them.
@@ -237,6 +238,32 @@ Remotion rules that are easy to break:
 - Footage plays with `<OffthreadVideo>`; `trimBefore` and `trimAfter` are in frames.
 - Keep every `remotion` and `@remotion/*` package on the same version.
 
+### Pictures you cannot draw
+
+Most of what a video shows you can draw as code — a number, a chart, a terminal, an interface, a map — and should: it is exact, and it moves. A photograph or an illustration you cannot. When a line needs one and the user has none, make it, when `ANGLES_API_KEY` is set:
+
+```bash
+node scripts/image.mjs harbour "A harbour at night seen from the quay, boats low in the frame, flat gouache, teal and amber, no text"
+node scripts/image.mjs cover "…" --aspect 9:16
+```
+
+It writes `public/images/harbour.jpg`, large enough to fill the frame and be pushed in on, and records it in `src/images.json` with its size and the words it was made from. The shapes are `16:9`, `9:16`, `1:1`, `4:3` and `3:4`. An account makes a limited number of pictures a day and every call says how many are left, so decide which lines need one before making any. The same name with the same words is not made twice; new words under the same name replace the picture.
+
+- **Make what cannot be drawn, and nothing that has to be true.** An illustration of an idea, a setting behind a line, a cover. Never the product's interface, a screenshot, a logo, a chart, a number, or a person who exists: those come from the product and the facts file, or are left out. A made picture of the interface is a claim about the product, and it is false.
+- **No words in the picture.** Say "no text" in the description, and set every word in type over it, where it is spelled right and matches the look.
+- **One hand for the whole video.** Write one sentence for how every picture is drawn — the medium, the palette from the look, the light, what is left out — keep it in `look.tsx` beside the palette, and end every description with it. Pictures in two styles look like two videos.
+- **Describe what is in the frame**, not what it means: the subject, where it sits, what is around it, the light. Say which part of the frame stays quiet, for the caption and whatever is set over it.
+- **Open every picture before it goes into a scene.** They come back with a sixth finger, with lettering that says nothing, with the wrong object. Make it again with plainer words, or do without it.
+- **Say it is a made picture wherever a viewer could take it for a real one.** The record carries `generated: true` so a scene can.
+
+Use it as any picture in `public/`, and give it something to do — a slow push in, a crop that travels while the line is spoken:
+
+```tsx
+import images from './images.json';
+
+<Img src={staticFile(images.harbour.src)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+```
+
 ### Music in the video
 
 Play the track once, at the top level of the video — outside every `<Sequence>` — from the point the timeline chose:
@@ -323,6 +350,7 @@ Look for these — each has shipped in a video that looked fine in the code:
 - **A picture that is late.** In the middle frame of a line, is the thing being said already on screen? In the end frame, has every animation finished?
 - **A scene that is only words.** A headline and a sentence on a background is the tell that the scene ran out of material. Find a fact and draw it.
 - **Text too small to read on a phone.** On a 1920-wide frame, nothing a viewer must read below about 28px.
+- **A made picture with something wrong in it** — a sixth finger, lettering that says nothing, an interface that was never the product's — or one a viewer would take for a photograph of the real thing.
 - **Anything that should not be published** — a key in a terminal, a customer's name in a screenshot, an internal address.
 - **The closing frame**: the right address, spelled the way the user gave it.
 
@@ -342,6 +370,7 @@ Give the user:
 
 - the path to the final file, with its length and resolution;
 - what you checked, and anything you could not verify;
+- which pictures were made rather than drawn from the facts, if any;
 - a short caption and one post for the platform they named, written from the same angle and facts — the problem first, no pile of hashtags;
 - how to change it: which file holds the words, which the pictures, and that asking for the next video reuses this look.
 

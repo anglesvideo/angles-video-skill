@@ -31,6 +31,7 @@ export const SHARED_FILES = new Map([
     'scripts/voice.mjs',
     'scripts/music.mjs',
     'scripts/sfx.mjs',
+    'scripts/image.mjs',
     'scripts/frames.mjs',
     'scripts/stills.mjs',
     'scripts/render.mjs',
