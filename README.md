@@ -160,6 +160,18 @@ The library costs nothing to use. Voice lines made through your Angles account d
 
 An agent can check a picture and cannot hear a mix, so it asks you to listen once before you publish.
 
+## Pictures
+
+Most of what a video shows is drawn as code — numbers, charts, terminals, interfaces, maps — because code is exact and it moves. A photograph or an illustration cannot be written that way. When a line needs one and you have none, the agent makes it through your Angles account (`ANGLES_API_KEY`).
+
+- **One hand for the whole video.** The style is set once, in a sentence — the medium, the palette, the light. The first picture made becomes the one every later picture is drawn like, because words alone do not hold a style from one picture to the next.
+- **The same place twice.** A picture can be drawn from another: the harbour at night, then the same harbour at dawn.
+- **Only what cannot be drawn, and nothing that has to be true.** Never your product's interface, a screenshot, a logo, a chart, a number, or a real person. Those come from the product itself, or are left out.
+- **A made picture says that it is one.** Each is recorded as generated. In a video essay it is an illustration, labelled on screen, and never stands in for a photograph or a document.
+- The agent opens every picture before using it, and makes it again when something in it is wrong.
+
+Pictures do not spend a video allowance; there is a daily limit instead.
+
 ## Requirements
 
 - Node.js 18 or newer.
@@ -171,7 +183,7 @@ Remotion is free for individuals and for companies of up to three people. A larg
 
 ## Privacy and safety
 
-The video is written and rendered on your machine. The only thing the workflow sends anywhere is the script text, to the voice service you choose; through an Angles account it goes to Angles and on to the voice provider it uses. Music and sound effects are downloaded from a library, so nothing about your video is sent to get them — unless you ask for a new one made with your own provider key, which sends its description. With your own voice and your own music, nothing is sent. Screen recordings and camera takes stay local, and the workspace keeps them out of git.
+The video is written and rendered on your machine. The only thing the workflow sends anywhere is the script text, to the voice service you choose; through an Angles account it goes to Angles and on to the voice provider it uses. Music and sound effects are downloaded from a library, so nothing about your video is sent to get them — unless you ask for a new one made with your own provider key, which sends its description. A picture made through your Angles account sends its description, and the made picture it is drawn like when there is one; none of your own files are sent for it. With your own voice and your own music, and no picture made, nothing is sent. Screen recordings and camera takes stay local, and the workspace keeps them out of git.
 
 The Skills tell the agent not to read or copy:
 

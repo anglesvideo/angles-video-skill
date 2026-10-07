@@ -361,6 +361,8 @@ test('sends the command given on the command line', async () => {
       baseUrl,
     });
     assert.equal(calls.fromUrl[0].codeSample, 'npx myapp init');
+    // Said to be a shell command, or the terminal it is drawn in is labelled JavaScript.
+    assert.equal(calls.fromUrl[0].codeLanguage, 'bash');
   });
 });
 
@@ -392,6 +394,7 @@ test('reads the command out of the README beside it', async () => {
     // The json block is skipped, the comment line is skipped, and the shell
     // prompt "$ " is decoration rather than part of the command.
     assert.equal(calls.fromUrl[0].codeSample, 'npx myapp start --port 3000');
+    assert.equal(calls.fromUrl[0].codeLanguage, 'bash');
     // It goes on screen in the video, so it is shown before anything is made.
     assert.match(result.stdout, /Using this command from README\.md/);
     assert.match(result.stdout, /npx myapp start/);
@@ -423,6 +426,7 @@ test('reads no README when told not to', async () => {
       cwd: dir,
     });
     assert.equal('codeSample' in calls.fromUrl[0], false);
+    assert.equal('codeLanguage' in calls.fromUrl[0], false);
     assert.equal(result.stdout.includes('Using this command'), false);
   });
 });

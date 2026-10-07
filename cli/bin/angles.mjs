@@ -101,6 +101,12 @@ function usesImages(template) {
 /** Shells whose first line is a command someone runs, not a program to read. */
 const SHELL_LANGUAGES = new Set(['bash', 'sh', 'shell', 'console', 'zsh', 'terminal', '']);
 const MAX_CODE_SAMPLE = 600;
+/**
+ * What the code sample is written in. It is always a command someone runs —
+ * typed after --code, or the first line of a shell block — and left unsaid,
+ * Angles labels the terminal it is drawn in as JavaScript.
+ */
+const COMMAND_LANGUAGE = 'bash';
 
 /**
  * The product's real command, read from the README next to where this runs.
@@ -348,7 +354,13 @@ async function resolveMaterial(flags) {
       : [];
 
   if (typeof flags.code === 'string' && flags.code.trim()) {
-    return { fields: { codeSample: flags.code.trim(), ...(steps.length ? { runSteps: steps } : {}) } };
+    return {
+      fields: {
+        codeSample: flags.code.trim(),
+        codeLanguage: COMMAND_LANGUAGE,
+        ...(steps.length ? { runSteps: steps } : {}),
+      },
+    };
   }
   if (flags['no-code']) {
     return { fields: steps.length ? { runSteps: steps } : {} };
@@ -360,7 +372,11 @@ async function resolveMaterial(flags) {
   }
   return {
     found,
-    fields: { codeSample: found.command, ...(steps.length ? { runSteps: steps } : {}) },
+    fields: {
+      codeSample: found.command,
+      codeLanguage: COMMAND_LANGUAGE,
+      ...(steps.length ? { runSteps: steps } : {}),
+    },
   };
 }
 
