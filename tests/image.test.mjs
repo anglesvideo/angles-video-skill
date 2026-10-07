@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -57,7 +58,9 @@ async function withAngles(reply, runWith) {
   const server = createServer(async (request, response) => {
     let body = '';
     for await (const chunk of request) body += chunk;
-    const seen = { method: request.method, url: request.url, headers: request.headers, body: body ? JSON.parse(body) : null };
+    // A picture sent to draw from arrives as a form, not as JSON: keep what it is, not its bytes.
+    const isJson = String(request.headers['content-type']).startsWith('application/json');
+    const seen = { method: request.method, url: request.url, headers: request.headers, body: body && isJson ? JSON.parse(body) : null, form: !isJson && body ? body : null };
     requests.push(seen);
     const { status = 201, ...json } = reply(seen, requests.length);
     response.statusCode = status;
@@ -190,6 +193,192 @@ test('asks for nothing when the request could not be right', async () => {
       assert.match(keyless.stderr, /ANGLES_API_KEY is not set/);
       for (const result of [shape, name, wordless, long, keyless]) assert.equal(result.code, 1);
       assert.equal(requests.length, 0);
+    }
+  );
+});
+
+// ——— One hand for every picture ———
+
+const STYLE = 'Flat gouache, deep teal and warm amber, no text';
+const IN_ITS_STYLE = /Drawn in the same style as the reference picture: the same medium, palette and brushwork\. A different scene/;
+const THE_SAME_AGAIN = /Drawn from the reference picture: the same place and things in the same style, changed only as these words say\./;
+const stampOf = bytes => createHash('sha256').update(bytes).digest('hex').slice(0, 16);
+
+/** Angles with storage: an upload gets a link, and each picture made is a little different from the last. */
+function studio() {
+  let uploads = 0;
+  let pictures = 0;
+  return request => {
+    if (request.url === '/assets') return { success: true, url: `https://cdn.test/screenshots/${++uploads}.jpg`, type: 'image' };
+    return made(jpegOf(2848, 1600 + pictures++), 'jpg', { remaining: 30 - pictures });
+  };
+}
+
+const read = async (directory, file) => JSON.parse(await readFile(join(directory, 'src', file), 'utf8'));
+
+test('with a style set, the first picture is drawn from the words and every later one is drawn like it', async () => {
+  await withAngles(studio(), async ({ directory, env, requests }) => {
+    const set = await run(directory, ['--style', STYLE], env);
+    assert.equal(set.code, 0, set.stderr);
+    assert.match(set.stdout, /Style: Flat gouache, deep teal and warm amber, no text\nThe next picture made becomes the one the others are drawn like\./);
+    assert.equal(requests.length, 0);
+
+    const first = await run(directory, ['harbour', 'A harbour at night, three boats low in the frame'], env);
+    assert.equal(first.code, 0, first.stderr);
+    assert.deepEqual(requests[0].body, { prompt: `A harbour at night, three boats low in the frame. ${STYLE}.`, aspect: '16:9' });
+    assert.match(first.stdout, /harbour is now the picture every later one is drawn like\. Open it first/);
+    assert.deepEqual(await read(directory, 'images.style.json'), { words: STYLE, like: 'harbour' });
+
+    const second = await run(directory, ['desk', "A keeper's desk seen from above.", '--aspect', '9:16'], env);
+    assert.equal(second.code, 0, second.stderr);
+    // The harbour is sent once, as a file, and the picture is asked for with the link to it.
+    assert.equal(requests[1].url, '/assets');
+    assert.equal(requests[1].headers.authorization, `Bearer ${testKey}`);
+    assert.match(requests[1].headers['content-type'], /^multipart\/form-data/);
+    assert.match(requests[1].form, /filename="harbour\.jpg"\r\nContent-Type: image\/jpeg/);
+    assert.equal(requests[2].url, '/images');
+    assert.deepEqual(requests[2].body.references, ['https://cdn.test/screenshots/1.jpg']);
+    assert.equal(requests[2].body.aspect, '9:16');
+    assert.ok(requests[2].body.prompt.startsWith(`A keeper's desk seen from above. ${STYLE}. Drawn in the same style`));
+    assert.match(requests[2].body.prompt, IN_ITS_STYLE);
+    assert.match(second.stdout, /desk: images\/desk\.jpg, 2848×1601, made by doubao-seedream-4\.0, drawn like harbour\. 28 left today\./);
+
+    const pictures = await read(directory, 'images.json');
+    const harbourStamp = stampOf(await readFile(join(directory, 'public', 'images', 'harbour.jpg')));
+    assert.deepEqual(pictures.desk.asked, { text: "A keeper's desk seen from above.", aspect: '9:16', style: STYLE });
+    assert.deepEqual(pictures.desk.from, { harbour: harbourStamp });
+    assert.deepEqual(pictures.harbour.uploaded, { of: harbourStamp, url: 'https://cdn.test/screenshots/1.jpg' });
+    assert.equal(pictures.harbour.from, undefined);
+
+    // A third picture is drawn like the same harbour without sending it again; none is made twice.
+    await run(directory, ['tram', 'An empty tram stop in the rain'], env);
+    assert.deepEqual(requests.slice(3).map(request => request.url), ['/images']);
+    for (const args of [['harbour', 'A harbour at night, three boats low in the frame'], ['desk', "A keeper's desk seen from above.", '--aspect', '9:16']]) {
+      assert.match((await run(directory, args, env)).stdout, /is already made/);
+    }
+    assert.equal(requests.length, 4);
+
+    const listed = await run(directory, ['--list'], env);
+    assert.match(listed.stdout, /^Style: Flat gouache.*\nEvery picture is drawn like harbour\.\nharbour .*\[the others are drawn like this\] A harbour at night/);
+    assert.doesNotMatch(listed.stdout, /desk .*\[/);
+    assert.doesNotMatch(set.stdout + first.stdout + second.stdout + listed.stdout, new RegExp(testKey));
+  });
+});
+
+test('--like draws the same place again, changed as the words say', async () => {
+  await withAngles(studio(), async ({ directory, env, requests }) => {
+    await run(directory, ['harbour', 'A harbour at night'], env);
+    const dawn = await run(directory, ['dawn', 'The harbour at dawn, the window dark', '--like', 'harbour'], env);
+    assert.equal(dawn.code, 0, dawn.stderr);
+    assert.deepEqual(requests.map(request => request.url), ['/images', '/assets', '/images']);
+    assert.deepEqual(requests[2].body.references, ['https://cdn.test/screenshots/1.jpg']);
+    assert.equal(requests[2].body.prompt, 'The harbour at dawn, the window dark. Drawn from the reference picture: the same place and things in the same style, changed only as these words say.');
+    assert.match(requests[2].body.prompt, THE_SAME_AGAIN);
+    assert.match(dawn.stdout, /dawn: images\/dawn\.jpg, .* drawn from harbour\./);
+    const pictures = await read(directory, 'images.json');
+    assert.deepEqual(pictures.dawn.asked, { text: 'The harbour at dawn, the window dark', aspect: '16:9', like: 'harbour' });
+
+    // With no style set, nothing is drawn like anything unless it is asked to be.
+    await run(directory, ['desk', 'A desk'], env);
+    assert.deepEqual(requests[3].body, { prompt: 'A desk', aspect: '16:9' });
+
+    const unknown = await run(directory, ['noon', 'The harbour at noon', '--like', 'pier'], env);
+    assert.match(unknown.stderr, /There is no picture "pier" to draw from\. There are: harbour, dawn, desk\./);
+    const itself = await run(directory, ['dawn', 'The harbour at dawn', '--like', 'dawn'], env);
+    assert.match(itself.stderr, /dawn cannot be drawn like itself/);
+    const nameless = await run(directory, ['noon', 'The harbour at noon', '--like'], env);
+    assert.match(nameless.stderr, /--like takes the name of a picture/);
+    assert.equal(requests.length, 4);
+  });
+});
+
+test('a picture made again leaves the ones drawn from it out of step, and their commands put them right', async () => {
+  await withAngles(studio(), async ({ directory, env, requests }) => {
+    await run(directory, ['--style', STYLE], env);
+    await run(directory, ['harbour', 'A harbour at night'], env);
+    await run(directory, ['desk', 'A desk'], env);
+
+    const again = await run(directory, ['harbour', 'A harbour at night', '--force'], env);
+    assert.match(again.stdout, /Drawn from the harbour this replaces: desk\. Run each one's command again\./);
+    const listed = await run(directory, ['--list'], env);
+    assert.match(listed.stdout, /desk .*\[drawn from an earlier harbour\] A desk/);
+
+    const before = requests.length;
+    const desk = await run(directory, ['desk', 'A desk'], env);
+    assert.doesNotMatch(desk.stdout, /already made/);
+    // The new harbour is a different file, so it is sent before the desk is drawn like it.
+    assert.deepEqual(requests.slice(before).map(request => request.url), ['/assets', '/images']);
+    assert.deepEqual(requests.at(-1).body.references, ['https://cdn.test/screenshots/2.jpg']);
+    assert.doesNotMatch((await run(directory, ['--list'], env)).stdout, /desk .*\[/);
+  });
+});
+
+test('new style words start again: the old pictures are named, and the next one made sets the hand', async () => {
+  await withAngles(studio(), async ({ directory, env, requests }) => {
+    await run(directory, ['--style', STYLE], env);
+    await run(directory, ['harbour', 'A harbour at night'], env);
+    await run(directory, ['desk', 'A desk'], env);
+
+    const same = await run(directory, ['--style', STYLE], env);
+    assert.match(same.stdout, /Every picture is drawn like harbour\./);
+
+    const changed = await run(directory, ['--style', 'Linocut, two inks'], env);
+    assert.match(changed.stdout, /Style: Linocut, two inks\nThe next picture made becomes the one the others are drawn like\.\nMade before this style: harbour, desk\. Run each one's command again/);
+    assert.deepEqual(await read(directory, 'images.style.json'), { words: 'Linocut, two inks', like: null });
+    assert.match((await run(directory, ['--list'], env)).stdout, /harbour .*\[made before this style\].*\ndesk .*\[made before this style\]/);
+
+    const before = requests.length;
+    const desk = await run(directory, ['desk', 'A desk'], env);
+    assert.deepEqual(requests.slice(before).map(request => request.url), ['/images']);
+    assert.deepEqual(requests.at(-1).body, { prompt: 'A desk. Linocut, two inks.', aspect: '16:9' });
+    assert.match(desk.stdout, /desk is now the picture every later one is drawn like/);
+
+    assert.match((await run(directory, ['--style'], env)).stdout, /Style: Linocut, two inks\nEvery picture is drawn like desk\./);
+  });
+});
+
+test('--style-from names the picture the others are drawn like, with or without style words', async () => {
+  await withAngles(studio(), async ({ directory, env, requests }) => {
+    assert.match((await run(directory, ['--style'], env)).stdout, /No style is set/);
+    await run(directory, ['harbour', 'A harbour at night'], env);
+    await run(directory, ['desk', 'A desk'], env);
+
+    const missing = await run(directory, ['--style-from', 'pier'], env);
+    assert.equal(missing.code, 1);
+    assert.match(missing.stderr, /There is no picture "pier"\. There are: harbour, desk\./);
+
+    const fixed = await run(directory, ['--style-from', 'harbour'], env);
+    assert.match(fixed.stdout, /^Every picture is drawn like harbour\.\nNot drawn like it yet: desk\. Run each one's command again\.\n$/);
+    assert.deepEqual(await read(directory, 'images.style.json'), { words: '', like: 'harbour' });
+
+    const before = requests.length;
+    await run(directory, ['desk', 'A desk'], env);
+    assert.deepEqual(requests.slice(before).map(request => request.url), ['/assets', '/images']);
+    assert.match(requests.at(-1).body.prompt, /^A desk\. Drawn in the same style as the reference picture/);
+
+    const together = await run(directory, ['tram', 'A tram stop', '--style', 'Linocut'], env);
+    assert.equal(together.code, 1);
+    assert.match(together.stderr, /Set the style in a call of its own/);
+    const long = await run(directory, ['--style', 'a'.repeat(301)], env);
+    assert.match(long.stderr, /The style is 301 characters; keep it to 300/);
+    // The style and the instruction count towards the length a picture can be asked for in.
+    const crowded = await run(directory, ['tram', 'a'.repeat(1400)], env);
+    assert.match(crowded.stderr, /The description, with the style and what it is drawn from added, is \d+ characters; .* Shorten it by \d+\./);
+  });
+});
+
+test('says so when the picture to draw from cannot be sent, and sends nothing else', async () => {
+  await withAngles(
+    (request, count) =>
+      request.url === '/assets'
+        ? { status: 400, message: 'Bad Request Exception', details: { message: 'The uploaded file content does not match its declared type.' } }
+        : made(jpegOf(2848, 1600 + count), 'jpg'),
+    async ({ directory, env, requests }) => {
+      await run(directory, ['harbour', 'A harbour at night'], env);
+      const dawn = await run(directory, ['dawn', 'The harbour at dawn', '--like', 'harbour'], env);
+      assert.equal(dawn.code, 1);
+      assert.match(dawn.stderr, /angles could not take harbour to draw from: HTTP 400 The uploaded file content does not match its declared type\./);
+      assert.deepEqual(requests.map(request => request.url), ['/images', '/assets']);
     }
   );
 });

@@ -99,17 +99,20 @@ export function soundFormatOf(file) {
 }
 
 /**
- * Calls the Angles audio API with the account's key. Returns the parsed reply;
- * throws with the server's own message when it refuses.
+ * Calls the Angles API with the account's key: a JSON body, or a FormData to
+ * upload a file. Returns the parsed reply; throws with the server's own message
+ * when it refuses.
  */
 export async function angles(method, path, body) {
   const key = process.env.ANGLES_API_KEY;
   if (!key) throw new Error('ANGLES_API_KEY is not set.');
   const base = (process.env.ANGLES_API_BASE_URL || 'https://api.angles.video/api/developer/v1').replace(/\/+$/, '');
+  // A form is a file being uploaded; fetch writes its own content type for one.
+  const form = body instanceof FormData;
   const response = await fetch(`${base}${path}`, {
     method,
-    headers: { Authorization: `Bearer ${key}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
-    ...(body ? { body: JSON.stringify(body) } : {}),
+    headers: { Authorization: `Bearer ${key}`, ...(body && !form ? { 'Content-Type': 'application/json' } : {}) },
+    ...(body ? { body: form ? body : JSON.stringify(body) } : {}),
   });
   const reply = await response.json().catch(() => null);
   if (!response.ok) {

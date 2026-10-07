@@ -65,4 +65,4 @@ After that, carry on through voice, music, look, scenes, check, and finish witho
 
 Return the path to `out/epNN.final.mp4` with its length and resolution, say what you checked, and include a short caption and one post for the platform it is going to. Tell them that asking for another video reuses the same look, so the next one starts from the script.
 
-The video is rendered on this machine. The only thing this workflow sends anywhere is the script text, to the voice service the user chose — and the description of anything made for the video: a picture made through their Angles account, or new music or a new sound made with their own provider key. With a recorded voice or none, and no picture made, nothing is sent at all.
+The video is rendered on this machine. The only thing this workflow sends anywhere is the script text, to the voice service the user chose — and the description of anything made for the video: a picture made through their Angles account — with the made picture it is drawn like, when there is one — or new music or a new sound made with their own provider key. With a recorded voice or none, and no picture made, nothing is sent at all.

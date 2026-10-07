@@ -60,9 +60,11 @@ The other thing a video written as code cannot supply: a photograph or an illust
 
 | Endpoint | Purpose |
 | --- | --- |
-| `POST /images` | Make one picture. Body `{ prompt, aspect? }`: `prompt` up to 1500 characters, saying what the picture shows and how it is drawn; `aspect` one of `16:9` (the default), `9:16`, `1:1`, `4:3`, `3:4`. Returns `{ image, format, aspect, provider, model, remaining }` with `image` base64-encoded and `format` one of `jpg`, `png`, `webp`. |
+| `POST /images` | Make one picture. Body `{ prompt, aspect?, references? }`: `prompt` up to 1500 characters, saying what the picture shows and how it is drawn; `aspect` one of `16:9` (the default), `9:16`, `1:1`, `4:3`, `3:4`; `references` up to three pictures to draw from. Returns `{ image, format, aspect, provider, model, remaining }` with `image` base64-encoded and `format` one of `jpg`, `png`, `webp`. |
 
 One request is one picture, and it can take half a minute. The reply is the file itself rather than a link, so nothing a caller keeps can stop working. `model` names what drew it: record it, and that the picture was made, beside the file. Pictures do not spend a video allowance; an account has a daily limit instead. `remaining` is how many are left in the current 24 hours, and going over returns `429` with `IMAGE_DAILY_LIMIT_REACHED` and the numbers. `503` means the picture could not be made — the provider failed, or refused the prompt — and is not counted against the limit: reword the prompt or try again.
+
+A reference is a picture to draw from, given as the `url` that `POST /assets` returned when it was uploaded; any other link returns `400` with `IMAGE_REFERENCE_NOT_UPLOADED`. What is taken from it is whatever the prompt says to take. Told to keep the style and draw a different scene, the new picture comes back in the same medium and palette with nothing of the reference in it — which words alone do not manage from one request to the next. Told to draw the same place again, it keeps the place and its things and changes what the prompt changes. `scripts/image.mjs` does both: `--style` holds every picture in a workspace to the first one made, and `--like` draws one picture from another.
 
 ## Presenter videos
 
