@@ -16,8 +16,9 @@ Looking for the command-line tool? `npx angles-video <url>` renders a hosted tem
 | [`create-video-from-recording`](skills/create-video-from-recording) | You have a screen recording of the product and want it cut into a finished video. |
 | [`create-presenter-video`](skills/create-presenter-video) | You want to present the product yourself: the agent writes the script, you record it one sentence at a time, and it builds the video around your takes. |
 | [`create-video-essay`](skills/create-video-essay) | The video is about a subject, not a product — a piece of history, an idea, how something works. The agent researches it, records every claim with its source, and draws it. |
+| [`create-music-video`](skills/create-music-video) | You want a song and its video: lyrics built from what the song's audience really says, sung by a music model, and cut to on a stage of lights with every word arriving as it is sung. |
 
-Writing and rendering need no account. A synthesised voice, and a library of music and sound effects, come through your [Angles account](https://angles.video/login?returnUrl=/developer-api) — set `ANGLES_API_KEY`. Your own files, or a provider key of your own, work without one. [Read the security policy](SECURITY.md)
+Writing and rendering need no account. A synthesised voice, a library of music and sound effects, and — for a music video — the song and the pictures of its singer come through your [Angles account](https://angles.video/login?returnUrl=/developer-api) — set `ANGLES_API_KEY`. Your own files, or a provider key of your own, work without one. [Read the security policy](SECURITY.md)
 
 ## How a video gets made
 
@@ -37,6 +38,10 @@ The workspace stays in your repository. Ask for another video next week and the 
 `create-video-essay` takes the same steps for a subject instead of a product, and shows you four pictures before it writes the rest. Its facts come from sources the agent reads and keeps a copy of, its script tells a story that answers a question rather than choosing a selling angle, every quotation is checked against the copy of its source before anything is voiced, the video itself ends on a list of its sources, and it is handed over with titles, a description, and the same list.
 
 The Skills ship mechanics only — timing, voice, beat analysis, frame extraction, loudness. Nothing in them is a design.
+
+`create-music-video` is a different kind of video and takes different steps. It starts from words: the agent reads where the song's audience talks, counts which phrases many people say in the same words, and builds the lyrics on those — you agree them before any song is made. A music model sings them through your Angles account, twice, and you choose the performance. The agent then measures the song: its bars, who is playing in each, and when each word is sung. The video is written against those measurements — a light changes because the kick stopped, a word appears because it was heard then — on a stage the Skill does ship: moving heads, washes, haze, a way of cutting still pictures of a drawn singer to the beat. What the lights do is written new for every song. You pick the singer from candidates, or have none.
+
+Timing each word needs something that can hear, which the agent cannot. The Skill offers to install a listener on your machine — Whisper, about 3 GB, tried on Apple Silicon only, sending nothing anywhere — and without it places each line whole from the times you read off a player.
 
 ## Install
 
@@ -66,6 +71,12 @@ And for the video essay Skill:
 $skill-installer install https://github.com/anglesvideo/angles-video-skill/tree/main/skills/create-video-essay
 ```
 
+And for the music video Skill:
+
+```text
+$skill-installer install https://github.com/anglesvideo/angles-video-skill/tree/main/skills/create-music-video
+```
+
 Review the repository before installing any Skill that includes executable scripts. Start a new Codex conversation after installation if the Skill does not appear immediately.
 
 ### Manual installation
@@ -84,6 +95,7 @@ ln -s ~/angles-video-skill/skills/create-launch-video ~/.agents/skills/create-la
 ln -s ~/angles-video-skill/skills/create-video-from-recording ~/.agents/skills/create-video-from-recording
 ln -s ~/angles-video-skill/skills/create-presenter-video ~/.agents/skills/create-presenter-video
 ln -s ~/angles-video-skill/skills/create-video-essay ~/.agents/skills/create-video-essay
+ln -s ~/angles-video-skill/skills/create-music-video ~/.agents/skills/create-music-video
 ```
 
 Or install it for Claude Code:
@@ -94,6 +106,7 @@ ln -s ~/angles-video-skill/skills/create-launch-video ~/.claude/skills/create-la
 ln -s ~/angles-video-skill/skills/create-video-from-recording ~/.claude/skills/create-video-from-recording
 ln -s ~/angles-video-skill/skills/create-presenter-video ~/.claude/skills/create-presenter-video
 ln -s ~/angles-video-skill/skills/create-video-essay ~/.claude/skills/create-video-essay
+ln -s ~/angles-video-skill/skills/create-music-video ~/.claude/skills/create-music-video
 ```
 
 ## Make a video
@@ -178,12 +191,13 @@ Pictures do not spend a video allowance; there is a daily limit instead.
 - Room for the workspace: Remotion and a headless browser, a few hundred megabytes, installed inside `video/` on first use.
 - An agent that can look at images, since the check step is done by eye.
 - No `ffmpeg` needed; the scripts fall back to the build inside Remotion. A system `ffmpeg` adds scene detection when watching a screen recording.
+- For `create-music-video` only: Python 3 with `numpy` and a system `ffmpeg`, which measure the song. Its listener is optional and is installed, if you agree to it, into the workspace.
 
 Remotion is free for individuals and for companies of up to three people. A larger company needs a [Remotion company licence](https://www.remotion.dev/docs/license); that licence is yours to hold and is not provided by these Skills.
 
 ## Privacy and safety
 
-The video is written and rendered on your machine. The only thing the workflow sends anywhere is the script text, to the voice service you choose; through an Angles account it goes to Angles and on to the voice provider it uses. Music and sound effects are downloaded from a library, so nothing about your video is sent to get them — unless you ask for a new one made with your own provider key, which sends its description. A picture made through your Angles account sends its description, and the made picture it is drawn like when there is one; none of your own files are sent for it. With your own voice and your own music, and no picture made, nothing is sent. Screen recordings and camera takes stay local, and the workspace keeps them out of git.
+The video is written and rendered on your machine. The only thing the workflow sends anywhere is the script text, to the voice service you choose; through an Angles account it goes to Angles and on to the voice provider it uses. Music and sound effects are downloaded from a library, so nothing about your video is sent to get them — unless you ask for a new one made with your own provider key, which sends its description. A picture made through your Angles account sends its description, and the made picture it is drawn like when there is one; none of your own files are sent for it. With your own voice and your own music, and no picture made, nothing is sent. Screen recordings and camera takes stay local, and the workspace keeps them out of git. A music video sends the lyrics and the style of the song to the service that sings it, and the descriptions of the singer's pictures to the one that draws them; the listener that times the words runs on your machine.
 
 The Skills tell the agent not to read or copy:
 
@@ -352,6 +366,8 @@ generated:
 npm run sync-client
 ```
 
+`create-music-video` is cut to a song rather than to a voice reading a script, so it has a workflow and a starter of its own — the stage, and the scripts that make, measure and time a song — which live in its directory and are not copied anywhere. From `src/starter/` it takes only what both kinds of video need: `media.mjs`, `music.mjs`, `image.mjs`, `finish.mjs`, `tsconfig.json` and `src/index.ts`. `scripts/sync-client.mjs` lists them.
+
 `create-video-essay` has no hosted path, so it carries the workflow and the starter and leaves out the client and `api.md`. It also carries two scripts of its own, which live in its starter and are not copied anywhere: `read.mjs` keeps a text copy of each source, `check.mjs` holds the script against the facts and every quotation against those copies, and `handover.mjs` writes the subtitles, chapter times, source list, description and cover from them.
 
 ### The audio library
@@ -384,6 +400,7 @@ test suite rather than shipping files the Skills disagree about.
 - [Recording Skill instructions](skills/create-video-from-recording/SKILL.md)
 - [Presenter Skill instructions](skills/create-presenter-video/SKILL.md)
 - [Video essay Skill instructions](skills/create-video-essay/SKILL.md)
+- [Music video Skill instructions](skills/create-music-video/SKILL.md)
 - [Developer API reference](skills/create-launch-video/references/api.md)
 - [Security policy](SECURITY.md)
 - [License](LICENSE)

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Music Video"
+  short_description: "Your agent writes a song from what its audience says, has it sung, and makes the video cut to it"
+  default_prompt: "Use $create-music-video to write a song for an audience I name and make its music video."

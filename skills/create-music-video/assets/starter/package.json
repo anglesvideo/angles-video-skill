@@ -1,0 +1,27 @@
+{
+  "name": "music-videos",
+  "private": true,
+  "description": "Music videos, one song at a time. The stage, the shots and the type are in src/ and are the same for every song; each song's own file holds its bars, its words and what the lights do to them.",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts",
+    "look": "node scripts/look.mjs",
+    "finish": "node scripts/finish.mjs",
+    "song": "node scripts/song.mjs",
+    "beats": "python3 scripts/beats.py",
+    "lines": "python3 scripts/lines.py",
+    "image": "node scripts/image.mjs",
+    "art": "node scripts/art.mjs"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.420",
+    "@remotion/google-fonts": "4.0.420",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "remotion": "4.0.420"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "typescript": "5.7.2"
+  }
+}

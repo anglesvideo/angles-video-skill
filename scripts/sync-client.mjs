@@ -49,6 +49,19 @@ export const SKILLS_SHIPPING_THE_CLIENT = [
  */
 export const SKILLS_WITHOUT_THE_CLIENT = ['create-video-essay'];
 const HOSTED_PATH_FILES = ['src/client.mjs', 'src/api.md'];
+/**
+ * Skills that make a different kind of video and bring a starter of their own.
+ * A music video is cut to a song, not to a voice reading a script, so it has no
+ * use for the timeline or the workflow built on it. It takes from the shared
+ * starter only the mechanics both kinds need, and nothing from the hosted path.
+ */
+export const SKILLS_WITH_THEIR_OWN_STARTER = {
+  'create-music-video': ['tsconfig.json', 'src/index.ts', 'scripts/media.mjs', 'scripts/music.mjs', 'scripts/image.mjs', 'scripts/finish.mjs'].map(
+    file => `src/starter/${file}`
+  ),
+};
+/** Every Skill that carries copies of shared files. */
+export const SKILLS = [...SKILLS_SHIPPING_THE_CLIENT, ...SKILLS_WITHOUT_THE_CLIENT, ...Object.keys(SKILLS_WITH_THEIR_OWN_STARTER)];
 
 const repoUrl = new URL('../', import.meta.url);
 const repoPath = path => fileURLToPath(new URL(path, repoUrl));
@@ -59,13 +72,14 @@ export function copyPathFor(skill, sharedPath) {
 
 /** The shared files a Skill carries. */
 export function sharedFilesFor(skill) {
+  if (skill in SKILLS_WITH_THEIR_OWN_STARTER) return SKILLS_WITH_THEIR_OWN_STARTER[skill];
   const all = [...SHARED_FILES.keys()];
   return SKILLS_WITHOUT_THE_CLIENT.includes(skill) ? all.filter(path => !HOSTED_PATH_FILES.includes(path)) : all;
 }
 
 async function sync() {
   const written = [];
-  for (const skill of [...SKILLS_SHIPPING_THE_CLIENT, ...SKILLS_WITHOUT_THE_CLIENT]) {
+  for (const skill of SKILLS) {
     for (const sharedPath of sharedFilesFor(skill)) {
       const source = await readFile(repoPath(sharedPath), 'utf8');
       const target = copyPathFor(skill, sharedPath);
