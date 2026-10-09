@@ -44,9 +44,9 @@ const UPLOAD_MIME_TYPES = new Map([
 export const GATEWAY_STATUSES = new Set([502, 504, 520, 522, 524]);
 const GATEWAY_HINT =
   'Angles did not answer in time. The request may still be completing on the server. ' +
-  'Only render spends a video allowance, and a repeated render with the same idempotency key ' +
-  'is treated as a retry rather than a second video, so retrying is safe for quota. ' +
-  'A repeated concepts request is safe for quota too, but can leave a duplicate project to delete later.';
+  'Only render costs credits, and a repeated render with the same idempotency key ' +
+  'is treated as a retry rather than a second video, so retrying does not charge twice. ' +
+  'A repeated concepts request costs nothing either, but can leave a duplicate project to delete later.';
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
@@ -506,7 +506,7 @@ async function main() {
     const videoId = requireString(flags, 'video');
     const templateId = requireString(flags, 'template');
     if (flags.confirm !== true) {
-      throw new Error('Rendering consumes an Angles video allowance. Re-run with --confirm.');
+      throw new Error('Rendering costs credits from the Angles account. Re-run with --confirm.');
     }
     const settings = await renderSettings(flags);
     const takes = flags.presenter === true ? await presenterTakes(videoId) : [];

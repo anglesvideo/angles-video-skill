@@ -2,7 +2,7 @@
 
 Use this only when the user asks for an Angles-hosted or template video, wants the browser editor, or the machine cannot render locally (no Node.js 18+, or packages and a headless browser cannot be installed). Otherwise write the video yourself as `SKILL.md` describes.
 
-On this path Angles plans the scenes from a summary you write, fits them to one of its templates, and renders in the cloud. It needs `ANGLES_API_KEY`, and each first render spends one video from the account's allowance. You do not design the scenes here; you choose among templates.
+On this path Angles plans the scenes from a summary you write, fits them to one of its templates, and renders in the cloud. It needs `ANGLES_API_KEY`, and each render costs 30 credits from the account's balance. You do not design the scenes here; you choose among templates.
 
 Use the bundled `scripts/angles.mjs` client for every Angles API operation. Do not construct ad hoc HTTP requests unless the client is unavailable.
 
@@ -130,7 +130,7 @@ Keep the returned `url`. An oversized file is refused locally with the 50MB limi
 
 ## 6. Preview the render
 
-Preview before every first render. It consumes no allowance, writes nothing, and can be repeated:
+Preview before every first render. It costs nothing, writes nothing, and can be repeated:
 
 ```bash
 node <skill-directory>/scripts/angles.mjs preview \
@@ -142,7 +142,7 @@ node <skill-directory>/scripts/angles.mjs preview \
 
 Repeat `--image-asset` once per file, and pass the same options to `render`.
 
-Act on the result before spending the allowance:
+Act on the result before spending the credits:
 
 - `canRender: false` — read `blockers` and fix them. A template that rejects the scene plan needs a video generated for that template, not this one.
 - `unusedMedia` — those uploads reach no scene. Rendering would produce a video without them, which is rarely what the user asked for. Say so and choose a template that has slots for them.
@@ -151,7 +151,7 @@ Act on the result before spending the allowance:
 
 ## 7. Confirm and render
 
-Before rendering, state that Angles reserves one available video allowance when the first render starts. A successful first render consumes it; if that first render fails before producing a video, Angles releases the reservation automatically. Require an explicit confirmation unless the user already said to render immediately and acknowledged the cost.
+Before rendering, state that a render costs 30 credits from the account's balance, taken when it starts — every render, not only the first. If it fails before producing a video, Angles hands the credits back automatically. Require an explicit confirmation unless the user already said to render immediately and acknowledged the cost.
 
 Run:
 
@@ -186,7 +186,7 @@ node <skill-directory>/scripts/angles.mjs status --video <video-id>
 - For `rendered`, return `videoUrl` and `downloadUrl` prominently.
 - When `launchCopy` is present, include the platform-specific publish copy after the video links so the user can post the video without asking for a second asset. If `hooks` are present, include one or two strong alternatives.
 - When `sceneWarnings` is present, say so before presenting the video. A `scene-content-contract-fallback` entry means that scene was rendered as plain text instead of the layout it was written for, so an uploaded screenshot or clip may not appear. Name the affected scenes and offer to re-render after supplying what the warning says is missing.
-- For `failed`, report the latest workflow error. Do not claim an allowance was consumed unless the API explicitly reports it; a failed first-render reservation should be released automatically. Offer one retry with the same idempotency key only after correcting deterministic configuration errors such as an unavailable renderer or timeout that is too short.
+- For `failed`, report the latest workflow error. Do not claim credits were spent unless the API explicitly reports it; a failed render's credits are handed back automatically. Offer one retry with the same idempotency key only after correcting deterministic configuration errors such as an unavailable renderer or timeout that is too short.
 - Always include `editUrl` as an optional path for detailed edits, not as a required step.
 
 Read [api.md](api.md) only when troubleshooting inputs, status values, authentication, or API errors.

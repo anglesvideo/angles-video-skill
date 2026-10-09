@@ -29,7 +29,7 @@ Three things in this you cannot do, and the user has to: **hear the song**, **ch
 
 The video needs Node.js 18 or newer and the user's agreement to install npm packages and a headless browser into a workspace directory. Measuring the song needs Python 3 with `numpy`, and a system `ffmpeg`. Check all three before promising anything: `node -v`, `python3 -c "import numpy"`, `ffmpeg -version`.
 
-A song and the pictures of a singer are made through the user's Angles account, when `ANGLES_API_KEY` is set. Without it there is still a video to make: from a song file the user already has and its lyrics, with no singer, or with pictures of their own.
+A song and the pictures of a singer are made through the user's Angles account, when `ANGLES_API_KEY` is set, and paid for from its credits: 30 for a song, 5 for a picture. Each script says what it took and what is left; say what a step will take before running it. Without it there is still a video to make: from a song file the user already has and its lyrics, with no singer, or with pictures of their own.
 
 **A key the user has may not be in your environment.** If a script says the key is not set, do not go looking for it. Give the user the exact command to run in their own terminal, and read what it prints.
 
@@ -100,7 +100,7 @@ Then offer the user two or three **hooks** — the phrase the chorus is built on
 - **About twenty lines for ninety seconds:** two verses of four, a pre-chorus of two each time, a chorus of four twice, and two lines to end on.
 - Do not put the name of this Skill, of Angles, or of any tool into the song.
 
-Show the user the lyrics with the phrase under each line and how many people say it. **Wait for a yes.** A song costs money each time it is made, and a lyric they do not like is not rescued by a good tune.
+Show the user the lyrics with the phrase under each line and how many people say it. **Wait for a yes.** A song costs 30 credits each time it is made, and a lyric they do not like is not rescued by a good tune.
 
 ## 5. Have the song made
 
@@ -163,7 +163,7 @@ Skip this when the user wants lights and words only, or has no key and no pictur
 A singer here is still pictures of one drawn person, cut to the beat. First find out who — then let the user see before they decide, because **nobody can choose a face from a description.**
 
 - **Describe what is plain about them.** A model asked for "a singer" draws an idol: young, symmetrical, well dressed, a guitar. If the user wants a programmer, write the programmer feature by feature — the slouch, the hoodie gone bobbly, the mug — and say outright that they are not handsome and not stylish. Leave out the instrument unless they play one.
-- **Make three or four candidates that really differ**, and show them together. Write them into `src/<singer>.art.json`, run `node scripts/art.mjs <singer> --candidates`, open each picture yourself first, and give the user all of them side by side. If they turn down the whole set, ask what was wrong and write a new set — do not argue for one.
+- **Make three or four candidates that really differ**, and show them together. Write them into `src/<singer>.art.json`, run `node scripts/art.mjs <singer> --candidates`, open each picture yourself first, and give the user all of them side by side. Each candidate and each shot is one picture, 5 credits. If they turn down the whole set, ask what was wrong and write a new set — do not argue for one.
 - **Write the name they pick into `"chosen"`**, and the shots under it: one for each thing the lyrics have the singer do. Eight to twelve is enough for ninety seconds. Put them in the order the video needs them most; then `node scripts/art.mjs <singer>`.
 - **Open every picture before it goes in.** They come back wrong in ways the words did not ask for: a full figure where a close-up was asked; a close-up drawn as a photograph of a real man when the rest are cartoons; a stray mark in a crowd that reads as a letter or a logo; clothes dirtier than described. Say again, in the words, the thing that went wrong, and make it again. A mark the size of a thumbnail can be painted out instead.
 - **Never a person who exists**, and nothing drawn so that a viewer would take it for a photograph of one. No words, letters or logos in a picture: anything written is set in type by you.

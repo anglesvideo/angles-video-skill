@@ -16,8 +16,8 @@
 //   node scripts/image.mjs --list
 //       what this workspace has, and which pictures no longer match the style
 //
-// An account makes a limited number of pictures a day; every call says how many
-// are left. The same name with the same words is not made twice.
+// A picture costs credits from the account's balance; every call says what it
+// took and what is left. The same name with the same words is not made twice.
 //
 // Every picture is recorded in src/images.json, which a scene can import:
 // { "harbour": { "src": "images/harbour.jpg", "width": 2848, "height": 1600, "generated": true, … } }.
@@ -243,8 +243,9 @@ async function makePicture(args, pictures) {
   };
   writeJson(MANIFEST, pictures);
   const drawn = source ? `, ${like ? 'drawn from' : 'drawn like'} ${source}` : '';
-  const left = Number.isFinite(reply.remaining) ? ` ${reply.remaining} left today.` : '';
-  process.stdout.write(`${name}: ${pictures[name].src}, ${size.width}×${size.height}, made by ${reply.model}${drawn}.${left}\n`);
+  const { charged, balance } = reply.credits ?? {};
+  const spent = Number.isFinite(charged) && Number.isFinite(balance) ? ` ${charged} ${charged === 1 ? 'credit' : 'credits'}; ${balance} left.` : '';
+  process.stdout.write(`${name}: ${pictures[name].src}, ${size.width}×${size.height}, made by ${reply.model}${drawn}.${spent}\n`);
 
   if (style && !style.like) {
     // The first picture under a style is the style, as far as the provider can be shown it.

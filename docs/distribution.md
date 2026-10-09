@@ -58,7 +58,7 @@ gh release create v0.2.0 \
 >
 > I built an open-source Agent Skill that lets Codex or Claude Code read safe product-facing context, propose three different selling angles, recommend video templates, and render the direction you choose with Angles.
 >
-> It does not upload raw repository files, and it asks before using a video allowance.
+> It does not upload raw repository files, and it asks before spending credits on a render.
 >
 > GitHub: https://github.com/anglesvideo/angles-video-skill
 > Guide: https://angles.video/integrations/codex
@@ -95,7 +95,7 @@ gh release create v0.2.0 \
 >
 > I built a small Agent Skill for Codex and Claude Code. It reads only product-facing context such as the README, public docs, package description, and changelog; prepares a structured product summary locally; and returns three different selling angles with hooks and recommended video templates.
 >
-> Nothing renders until the user chooses a concept and explicitly confirms the video allowance. The client also uses a stable idempotency key for retries.
+> Nothing renders until the user chooses a concept and explicitly confirms the credits a render costs. The client also uses a stable idempotency key for retries.
 >
 > The Skill and client are public here: https://github.com/anglesvideo/angles-video-skill
 >
@@ -128,7 +128,7 @@ Prepare one focused pull request or submission for each relevant directory. Star
 - Awesome Agent Skills: https://github.com/junminhong/awesome-agent-skills
 - Other directories that accept open Agent Skills and link directly to the source repository
 
-Use the repository description above, categorize it under Creative & Media or Business & Marketing, and disclose that rendering requires an Angles account and available allowance.
+Use the repository description above, categorize it under Creative & Media or Business & Marketing, and disclose that rendering requires an Angles account with credits.
 
 ## Launch measurement
 

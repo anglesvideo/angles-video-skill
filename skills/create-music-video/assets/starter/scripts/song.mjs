@@ -15,7 +15,8 @@
 //   node scripts/song.mjs --list
 //       every song this workspace has, and its versions
 //
-// A song costs real money each time it is started. The same name with the
+// A song costs credits from the account's balance each time it is started,
+// and starting one says what it took and what is left. The same name with the
 // same words is therefore never started twice: --force is how to ask again on
 // purpose.
 //
@@ -164,7 +165,9 @@ async function makeSong(args, songs) {
   // Kept before waiting: a song that is being made must not be lost to a closed terminal.
   songs[name] = { id: reply.id, title: asked.title, model: reply.model, asked, versions: [] };
   writeJson(MANIFEST, songs);
-  process.stdout.write(`${name}: started.\n`);
+  const { charged, balance } = reply.credits ?? {};
+  const spent = Number.isFinite(charged) && Number.isFinite(balance) ? ` ${charged} ${charged === 1 ? 'credit' : 'credits'}; ${balance} left.` : '';
+  process.stdout.write(`${name}: started.${spent}\n`);
   return collect(name, songs);
 }
 

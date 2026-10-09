@@ -2,7 +2,7 @@
 
 Use this only when the user asks for an Angles-hosted or template video, wants the browser editor, or the machine cannot render locally (no Node.js 18+, or packages and a headless browser cannot be installed). Otherwise write the video yourself as `SKILL.md` describes. Unlike the local path, this one uploads each recorded take to Angles.
 
-On this path Angles plans the scenes from a summary you write, fits them to one of its templates, and renders in the cloud. It needs `ANGLES_API_KEY`, and each first render spends one video from the account's allowance. You do not design the scenes here; you choose among templates.
+On this path Angles plans the scenes from a summary you write, fits them to one of its templates, and renders in the cloud. It needs `ANGLES_API_KEY`, and each render costs 30 credits from the account's balance. You do not design the scenes here; you choose among templates.
 
 Use the bundled `scripts/angles.mjs` client for every Angles API operation. Do not construct ad hoc HTTP requests unless the client is unavailable.
 
@@ -135,7 +135,7 @@ Use the same template the script was drafted for.
 
 ## 10. Confirm and render
 
-State that Angles reserves one available video allowance when the first render starts. A successful first render consumes it; if that first render fails before producing a video, Angles releases the reservation automatically. Require an explicit confirmation unless the user already said to render immediately and acknowledged the cost.
+State that a render costs 30 credits from the account's balance, taken when it starts — every render, not only the first. If it fails before producing a video, Angles hands the credits back automatically. Require an explicit confirmation unless the user already said to render immediately and acknowledged the cost.
 
 ```bash
 node <skill-directory>/scripts/angles.mjs render \
@@ -158,7 +158,7 @@ node <skill-directory>/scripts/angles.mjs status --video <video-id>
 - For `rendering`, report concise progress and continue checking at a reasonable interval.
 - For `rendered`, return `videoUrl` and `downloadUrl` prominently, followed by `launchCopy` when present.
 - When `sceneWarnings` is present, say so before presenting the video.
-- For `failed`, report the latest workflow error. Do not claim an allowance was consumed unless the API explicitly reports it.
+- For `failed`, report the latest workflow error. Do not claim credits were spent unless the API explicitly reports it; a failed render's credits are handed back automatically.
 - Include `editUrl` for moving the presenter window or hiding it on particular scenes, which is done in the browser editor.
 
 Read [api.md](api.md) only when troubleshooting inputs, status values, authentication, or API errors.

@@ -56,7 +56,7 @@ async function withSongs(runWith) {
     response.setHeader('content-type', 'application/json');
     if (request.method === 'POST') {
       response.statusCode = 201;
-      return response.end(JSON.stringify({ id: 'song-1', status: 'processing', model: 'a-music-model' }));
+      return response.end(JSON.stringify({ id: 'song-1', status: 'processing', model: 'a-music-model', credits: { charged: 30, balance: 170 } }));
     }
     response.end(JSON.stringify({ status: 'completed', model: 'a-music-model', versions: [{ url: `${here}/files/a.mp3`, seconds: 88.6 }, { url: `${here}/files/b.mp3`, seconds: 88.8 }] }));
   });
@@ -98,6 +98,7 @@ test('starts a song, keeps both versions, and does not start it twice', async ()
     assert.equal(first.code, 0, first.stderr);
     assert.deepEqual(requests[0].body, { lyrics: LYRICS.trim(), title: 'Our Anthem', style: 'pop punk, 160bpm', vocals: 'male', seconds: 90 });
     assert.equal(requests[0].key, `Bearer ${testKey}`);
+    assert.match(first.stdout, /^anthem: started\. 30 credits; 170 left\.\n/);
     assert.match(first.stdout, /song\/anthem-1\.mp3\s+89s/);
     assert.match(first.stdout, /Listen to both/);
     assert.ok(!(first.stdout + first.stderr).includes(testKey));

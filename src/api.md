@@ -15,7 +15,7 @@ Authenticate with `Authorization: Bearer $ANGLES_API_KEY`. Never place the key i
 | `script`       | `POST /videos/:id/script` / `GET /videos/:id/script` | Draft the per-scene script a presenter reads (POST, with `templateId`), or read where the draft and the recording stand (GET). |
 | `script-text`  | `PATCH /videos/:id/scenes/:index/text` | Reword one sentence before it is recorded. |
 | `take`         | `PUT /videos/:id/scenes/:index/take` | Upload one recorded sentence — picture and sound in one file — onto its scene. |
-| `preview`      | `POST /videos/:id/render/preview` | Report what a render would do — blockers, downgraded scenes, and the asset bound to each scene — without rendering, writing, or spending an allowance. |
+| `preview`      | `POST /videos/:id/render/preview` | Report what a render would do — blockers, downgraded scenes, and the asset bound to each scene — without rendering, writing, or spending credits. |
 | `render`       | `POST /videos/:id/render` | Confirm a template/color variant, optionally set a background motif or music, and start an asynchronous render. Requires `Idempotency-Key`. |
 | `status`       | `GET /videos/:id`         | Read `planned`, `rendering`, `rendered`, or `failed` state and final links.                                        |
 
@@ -35,6 +35,21 @@ Each template carries a `media` block answering whether uploads reach the finish
 
 `concepts` and `status` responses may include `launchCopy`, a publishing pack derived from the selected video's title, hook, selling angle, caption, CTA, and product context. It includes a short caption, LinkedIn, X, TikTok, and YouTube Shorts copy, pinned-comment text, thumbnail text options, hashtags, optional hook alternatives, and `source` (`ai` or `fallback`). Use it directly when presenting the final launch asset.
 
+## Credits
+
+One balance pays for everything an account has made for it, whichever path made it. A new account starts with 200 credits.
+
+| What is made | Credits |
+| --- | --- |
+| A hosted render (`render`) | 30 |
+| A voice line (`POST /audio/voice`) | 1 |
+| A picture (`POST /images`) | 5 |
+| A song (`POST /audio/songs`) | 30 |
+
+`GET /credits` returns `{ balance, prices }` and is the source of truth for both; `prices` is keyed `video.export`, `audio.voice`, `image.generate`, and `audio.song`. Any key can read it. Read it before the first call that costs something, so the user can be told what the video will take and whether the account has it. Concepts, previews, uploads, and the music and sound-effect library cost nothing.
+
+A charge is taken before the thing is made and handed back when it could not be made. A reply that made something carries `credits: { charged, balance }`. An account with too few gets `402` with `CREDITS_INSUFFICIENT`, `credits: { required, balance }`, and a message saying where credits are added; nothing was made and nothing was charged.
+
 ## Audio for videos you render yourself
 
 These endpoints serve the local path, where the agent writes and renders the video on the user's machine. They supply the one part of such a video that cannot be written as code. The workspace scripts call them — `scripts/voice.mjs` with the `angles` provider, and the `library` and `use` commands of `scripts/music.mjs` and `scripts/sfx.mjs` — so there is no client command for them.
@@ -42,10 +57,10 @@ These endpoints serve the local path, where the agent writes and renders the vid
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /audio/voices` | The voices a line can be spoken in, as `{ language, label, voice, description, default }`. Every supported language has one of its own (`default: true`) and may have other narrators. |
-| `POST /audio/voice` | Speak one line. Body `{ text, voice?, language? }`, `text` up to 400 characters. `voice` is a name from `GET /audio/voices`; left out, the language's own speaks. Returns `{ audio, format, voice, provider, characters }` with `audio` base64-encoded. |
+| `POST /audio/voice` | Speak one line. Body `{ text, voice?, language? }`, `text` up to 400 characters. `voice` is a name from `GET /audio/voices`; left out, the language's own speaks. Returns `{ audio, format, voice, provider, characters, credits }` with `audio` base64-encoded. |
 | `GET /audio/library` | The music and sound effects on offer: `{ version, updatedAt, music: [...], sfx: [...] }`. |
 
-A voice has to be made for the words, so it is generated: one request is one line, because the caller measures each file to build its timeline and re-voices a single line when its wording changes. A `voice` shaped like the listed names that is not one of them returns `400` with `AUDIO_VOICE_UNKNOWN` and the names that are on offer, rather than being spoken in some other voice. `provider` names which voice provider spoke the line. Angles falls back to a second provider when its first fails, and a video whose voice changes part-way sounds broken — a line whose `provider` differs from the others should be voiced again. Voice lines do not spend a video allowance; an account has a daily limit instead, and going over it returns `429` with `AUDIO_DAILY_LIMIT_REACHED` and the numbers.
+A voice has to be made for the words, so it is generated: one request is one line, because the caller measures each file to build its timeline and re-voices a single line when its wording changes. A `voice` shaped like the listed names that is not one of them returns `400` with `AUDIO_VOICE_UNKNOWN` and the names that are on offer, rather than being spoken in some other voice. `provider` names which voice provider spoke the line. Angles falls back to a second provider when its first fails, and a video whose voice changes part-way sounds broken — a line whose `provider` differs from the others should be voiced again. A line costs 1 credit, handed back when the voice could not be generated (`503`).
 
 Music and sound effects are not generated per request. They come from a library made ahead of time and listened to by a person, so a track costs nothing and cannot come back sounding wrong. Each entry carries what is needed to choose it without downloading it:
 
@@ -60,9 +75,9 @@ The other thing a video written as code cannot supply: a photograph or an illust
 
 | Endpoint | Purpose |
 | --- | --- |
-| `POST /images` | Make one picture. Body `{ prompt, aspect?, references? }`: `prompt` up to 1500 characters, saying what the picture shows and how it is drawn; `aspect` one of `16:9` (the default), `9:16`, `1:1`, `4:3`, `3:4`; `references` up to three pictures to draw from. Returns `{ image, format, aspect, provider, model, remaining }` with `image` base64-encoded and `format` one of `jpg`, `png`, `webp`. |
+| `POST /images` | Make one picture. Body `{ prompt, aspect?, references? }`: `prompt` up to 1500 characters, saying what the picture shows and how it is drawn; `aspect` one of `16:9` (the default), `9:16`, `1:1`, `4:3`, `3:4`; `references` up to three pictures to draw from. Returns `{ image, format, aspect, provider, model, credits }` with `image` base64-encoded and `format` one of `jpg`, `png`, `webp`. |
 
-One request is one picture, and it can take half a minute. The reply is the file itself rather than a link, so nothing a caller keeps can stop working. `model` names what drew it: record it, and that the picture was made, beside the file. Pictures do not spend a video allowance; an account has a daily limit instead. `remaining` is how many are left in the current 24 hours, and going over returns `429` with `IMAGE_DAILY_LIMIT_REACHED` and the numbers. `503` means the picture could not be made — the provider failed, or refused the prompt — and is not counted against the limit: reword the prompt or try again.
+One request is one picture, and it can take half a minute. The reply is the file itself rather than a link, so nothing a caller keeps can stop working. `model` names what drew it: record it, and that the picture was made, beside the file. A picture costs 5 credits, and `credits` says what the account has left. `503` means the picture could not be made — the provider failed, or refused the prompt — and its credits are handed back: reword the prompt or try again.
 
 A reference is a picture to draw from, given as the `url` that `POST /assets` returned when it was uploaded; any other link returns `400` with `IMAGE_REFERENCE_NOT_UPLOADED`. What is taken from it is whatever the prompt says to take. Told to keep the style and draw a different scene, the new picture comes back in the same medium and palette with nothing of the reference in it — which words alone do not manage from one request to the next. Told to draw the same place again, it keeps the place and its things and changes what the prompt changes. `scripts/image.mjs` does both: `--style` holds every picture in a workspace to the first one made, and `--like` draws one picture from another.
 
@@ -80,7 +95,7 @@ A presenter video is voiced by a person on camera instead of the synthesised voi
 
    A take is a recording of a person, so it is kept out of public reach: unlike uploaded screenshots and clips, it is stored where a request without a signature gets nothing, and the URLs Angles hands out for it expire. The finished video is an ordinary public file like any other render — what is protected is the raw recording, not the video the user chose to make from it. A recording above 1920px or 30fps is re-encoded and comes back with `transcoded: true`. Uploading again for the same scene replaces its take.
 
-4. `preview` and `render` as usual, with the template the script was drafted for. Once any take exists, every spoken scene needs one — a voice that switches between a person and the machine sounds like a fault — and a missing take or a different template is a `blocker` in preview and a `400` from render, before any allowance is reserved. A render repeated with an idempotency key used before a scene was re-recorded returns `409`; the bundled client's `render --presenter` folds the take ids into the key so this does not happen.
+4. `preview` and `render` as usual, with the template the script was drafted for. Once any take exists, every spoken scene needs one — a voice that switches between a person and the machine sounds like a fault — and a missing take or a different template is a `blocker` in preview and a `400` from render, before anything is charged. A render repeated with an idempotency key used before a scene was re-recorded returns `409`; the bundled client's `render --presenter` folds the take ids into the key so this does not happen.
 
 The window sits in the lower right by default. Moving it, or turning it off for particular scenes after the fact, is done in the browser editor from `editUrl`.
 
@@ -113,10 +128,10 @@ The response carries `url`, `key`, `type`, and — when the file could be probed
 - `401`: The API key is missing, invalid, expired, or revoked.
 - `403`: The key lacks the required capability.
 - `400`: Input, template, confirmation, or idempotency data is invalid.
-- `429` with `VIDEO_QUOTA_EXCEEDED`: The account has no remaining video allowance.
+- `402` with `CREDITS_INSUFFICIENT`: The account has too few credits for what was asked. `credits` carries `required` and `balance`, and the message says where to add them.
 - `503`: Rendering capacity is temporarily full; retry status or render later with the same idempotency key.
-- `502`, `504`, `520`, `522`, `524`: A gateway timed out and the response is an error page, not an Angles reply. The client adds a `hint` explaining what it costs to retry. The request may still be completing on the server: only `render` spends a video allowance and a repeat with the same idempotency key counts as a retry, so retrying is safe for quota, but a repeated `concepts` can leave a duplicate project to delete later.
+- `502`, `504`, `520`, `522`, `524`: A gateway timed out and the response is an error page, not an Angles reply. The client adds a `hint` explaining what it costs to retry. The request may still be completing on the server: only `render` costs credits and a repeat with the same idempotency key counts as a retry, so retrying does not charge twice, but a repeated `concepts` can leave a duplicate project to delete later.
 
-Do not automatically retry `400`, `401`, `403`, or quota errors. Retry transient server errors with the same idempotency key.
+Do not automatically retry `400`, `401`, `402`, or `403`. Retry transient server errors with the same idempotency key.
 
 The client prints the rejected fields, not the exception name: a `400` reports every failing field, such as `productSummary should not be empty; property aspectRatio should not exist`, and repeats the raw response under `details`. Read that list before changing the request — a rejected field name is usually either a required field left out or a field Angles does not accept.

@@ -201,7 +201,7 @@ async function askForConcept(concepts) {
     for (;;) {
       const answer = (
         await rl.question(
-          `\n  ${style.dim('Rendering spends 1 video from your allowance.')}\n` +
+          `\n  ${style.dim('Each render costs 30 credits.')}\n` +
             `  Pick one (1-${concepts.length}), 'a' for all ${concepts.length}, or 'q' to quit: `
         )
       )

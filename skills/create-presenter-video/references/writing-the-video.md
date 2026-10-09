@@ -100,7 +100,7 @@ Ask the user how the video should sound. Check what is available first:
 node scripts/voice.mjs --providers
 ```
 
-- **A synthesised voice through their Angles account** — `"provider": "angles"`, when `ANGLES_API_KEY` is set. Add `"language"` for a script that is not in English. A language has more than one narrator: `node scripts/voice.mjs --voices <language>` lists them, and `"id"` names the one to use. Offer the user the choice — a man or a woman is the first thing a listener notices. Voice lines count against the account's daily limit, not its video allowance.
+- **A synthesised voice through their Angles account** — `"provider": "angles"`, when `ANGLES_API_KEY` is set. Add `"language"` for a script that is not in English. A language has more than one narrator: `node scripts/voice.mjs --voices <language>` lists them, and `"id"` names the one to use. Offer the user the choice — a man or a woman is the first thing a listener notices. A voice line costs 1 credit from the account's balance.
 - **A synthesised voice with a key of their own** — `elevenlabs`, `openai`, or `minimax`, when that key is already set in the environment. `voice.id` and `voice.model` choose the voice; leave them out for the provider's default.
 - **Their own voice** — `"provider": "recorded"`. They record each line as its own file, named after the line id, into `public/takes/epNN/` (for example `l03.m4a`). Sound only is fine. To appear on camera as well, use the `create-presenter-video` Skill.
 - **No voice** — `"provider": "none"`. Each line is timed to how long its caption takes to read. Most social feeds play muted, so this is a real option, not a fallback; pair it with music.
@@ -257,7 +257,7 @@ The style is one sentence: the medium, the palette from the look, the light, wha
 
 `--like <name>` is for the same place or thing again — the harbour at dawn, the desk with the lamp out. It keeps what the words do not change. Without it, a picture shares the style and nothing else.
 
-Each picture is written to `public/images/`, large enough to fill the frame and be pushed in on, and recorded in `src/images.json` with its size and the words it was made from. The shapes are `16:9`, `9:16`, `1:1`, `4:3` and `3:4`. An account makes a limited number of pictures a day and every call says how many are left, so decide which lines need one before making any. The same name with the same words is not made twice; new words under the same name replace the picture.
+Each picture is written to `public/images/`, large enough to fill the frame and be pushed in on, and recorded in `src/images.json` with its size and the words it was made from. The shapes are `16:9`, `9:16`, `1:1`, `4:3` and `3:4`. A picture costs 5 credits from the account's balance and every call says what is left, so decide which lines need one before making any. The same name with the same words is not made twice; new words under the same name replace the picture.
 
 `node scripts/image.mjs --list` shows which pictures no longer match — made before the style was set, or drawn from a picture that has since been made again. Running such a picture's command again puts it right. New style words start the style over, and `--style-from <name>` names a different picture for the rest to be drawn like. The style is kept in `src/images.style.json` and belongs to the series, like the look.
 

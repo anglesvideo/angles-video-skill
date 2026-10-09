@@ -95,7 +95,7 @@ test('auditions the candidates of a language beside its own voice, and says who 
     await withAngles(async (baseUrl, requests) => {
       const result = await run(directory, ['--only', 'zh-CN', '--out', 'heard'], { ANGLES_API_KEY: testKey, ANGLES_API_BASE_URL: baseUrl });
       assert.equal(result.code, 0, result.stderr);
-      assert.match(result.stdout, /^5 voice lines against the account's daily limit\.\n/);
+      assert.match(result.stdout, /^5 voice lines, a credit each from the account's balance\.\n/);
       assert.ok(!result.stdout.includes(testKey));
 
       // The language's own voice is asked for by leaving `voice` out; a candidate by its provider id.

@@ -39,7 +39,7 @@ The workspace stays in your repository. Ask for another video next week and the 
 
 The Skills ship mechanics only — timing, voice, beat analysis, frame extraction, loudness. Nothing in them is a design.
 
-`create-music-video` is a different kind of video and takes different steps. It starts from words: the agent reads where the song's audience talks, counts which phrases many people say in the same words, and builds the lyrics on those — you agree them before any song is made. A music model sings them through your Angles account, twice, and you choose the performance. The agent then measures the song: its bars, who is playing in each, and when each word is sung. The video is written against those measurements — a light changes because the kick stopped, a word appears because it was heard then — on a stage the Skill does ship: moving heads, washes, haze, a way of cutting still pictures of a drawn singer to the beat. What the lights do is written new for every song. You pick the singer from candidates, or have none.
+`create-music-video` is a different kind of video and takes different steps. It starts from words: the agent reads where the song's audience talks, counts which phrases many people say in the same words, and builds the lyrics on those — you agree them before any song is made. A music model sings them through your Angles account, twice, for 30 credits, and you choose the performance. The agent then measures the song: its bars, who is playing in each, and when each word is sung. The video is written against those measurements — a light changes because the kick stopped, a word appears because it was heard then — on a stage the Skill does ship: moving heads, washes, haze, a way of cutting still pictures of a drawn singer to the beat. What the lights do is written new for every song. You pick the singer from candidates, or have none.
 
 Timing each word needs something that can hear, which the agent cannot. The Skill offers to install a listener on your machine — Whisper, about 3 GB, tried on Apple Silicon only, sending nothing anywhere — and without it places each line whole from the times you read off a player.
 
@@ -169,7 +169,7 @@ The agent asks before it installs anything, shows you the angles and the script 
 - **From the Angles library**, in families whose sounds belong together — one family per video. Or files you already have, or a new sound made with an ElevenLabs key of your own.
 - Each is placed by the scene it belongs to, lined up on its loudest moment.
 
-The library costs nothing to use. Voice lines made through your Angles account do not spend a video allowance; there is a daily limit instead.
+The library costs nothing to use. A voice line made through your Angles account costs 1 credit.
 
 An agent can check a picture and cannot hear a mix, so it asks you to listen once before you publish.
 
@@ -183,7 +183,7 @@ Most of what a video shows is drawn as code — numbers, charts, terminals, inte
 - **A made picture says that it is one.** Each is recorded as generated. In a video essay it is an illustration, labelled on screen, and never stands in for a photograph or a document.
 - The agent opens every picture before using it, and makes it again when something in it is wrong.
 
-Pictures do not spend a video allowance; there is a daily limit instead.
+A picture costs 5 credits from your Angles account.
 
 ## Requirements
 
@@ -192,6 +192,7 @@ Pictures do not spend a video allowance; there is a daily limit instead.
 - An agent that can look at images, since the check step is done by eye.
 - No `ffmpeg` needed; the scripts fall back to the build inside Remotion. A system `ffmpeg` adds scene detection when watching a screen recording.
 - For `create-music-video` only: Python 3 with `numpy` and a system `ffmpeg`, which measure the song. Its listener is optional and is installed, if you agree to it, into the workspace.
+- An Angles account only for what your machine cannot make: a synthesised voice, a picture, a song, or a hosted render. One balance of credits pays for all four — 1 for a voice line, 5 for a picture, 30 for a song, 30 for a hosted render — and a new account starts with 200. Rendering on your own machine costs nothing.
 
 Remotion is free for individuals and for companies of up to three people. A larger company needs a [Remotion company licence](https://www.remotion.dev/docs/license); that licence is yours to hold and is not provided by these Skills.
 
@@ -215,7 +216,7 @@ See [SECURITY.md](SECURITY.md) for reporting guidance.
 
 The earlier path is still here for when a video cannot be rendered locally, or when you want an Angles template and the browser editor: the agent writes a summary of the product, Angles plans the scenes, fits them to a template, and renders in the cloud. Each product Skill carries it as `references/hosted-render.md` and takes it only when you ask or when the machine cannot render. `create-video-essay` has no hosted path.
 
-It needs an Angles account, and each first render spends one video from the account's allowance.
+It needs an Angles account, and each render costs 30 credits.
 
 ### Connect your Angles account
 
@@ -229,14 +230,14 @@ Never commit the key to a repository. You can revoke it from the Integrations pa
 
 ### Check before you render
 
-On the hosted path, every Skill previews the render before the first one starts. A preview costs nothing, changes nothing, and can be repeated. It answers the questions you would otherwise only be able to answer by spending an allowance and watching the result:
+On the hosted path, every Skill previews the render before the first one starts. A preview costs nothing, changes nothing, and can be repeated. It answers the questions you would otherwise only be able to answer by paying for a render and watching the result:
 
 - Would this template accept this concept at all?
 - Which scene does each screenshot or recording land on?
 - Is anything you uploaded going to be left out of the video entirely?
 - Which scenes fall back to plain text because content is missing?
 
-You do not have to ask for it. The Skill runs it and reports anything worth acting on before it asks you to confirm the allowance.
+You do not have to ask for it. The Skill runs it and reports anything worth acting on before it asks you to confirm the credits.
 
 ### Add background music
 
@@ -278,7 +279,7 @@ node skills/create-launch-video/scripts/angles.mjs render \
   --confirm
 ```
 
-`preview` spends no allowance. Only `render --confirm` does. Render retries use a stable idempotency key, so retrying a transient request does not start a duplicate render.
+`preview` costs nothing. Only `render --confirm` spends credits. Render retries use a stable idempotency key, so retrying a transient request does not start a duplicate render.
 
 ### Example gallery
 
@@ -310,7 +311,7 @@ npx angles-video https://yourproduct.com
   2) Use Case     — "Send your first invoice in 60 seconds"  Screen Demo
   3) Clarity      — "Invoicing, minus the spreadsheet"       Dynamic
 
-  Rendering spends 1 video from your allowance.
+  Each render costs 30 credits.
   Pick one (1-3), 'a' for all 3, or 'q' to quit:
 ```
 
@@ -386,7 +387,7 @@ Sound effects are taken from sound packs released under CC0, not generated: each
 
 ### Narrators
 
-Which voices an Angles account speaks in is decided on the server, but a voice is chosen by ear and an agent has none. `tools/narrators/audition.mjs` speaks one sentence in every voice listed in [`tools/narrators/candidates.json`](tools/narrators/candidates.json), beside each language's own, and writes a page to listen through with who spoke each line and how high the voice sits. A provider's name for a voice does not settle whether it is a man or a woman; the page does. `--offered` does the same for the narrators already on offer. Needs `ANGLES_API_KEY` and `ffmpeg`, and each sentence is one voice line against the account's daily limit.
+Which voices an Angles account speaks in is decided on the server, but a voice is chosen by ear and an agent has none. `tools/narrators/audition.mjs` speaks one sentence in every voice listed in [`tools/narrators/candidates.json`](tools/narrators/candidates.json), beside each language's own, and writes a page to listen through with who spoke each line and how high the voice sits. A provider's name for a voice does not settle whether it is a man or a woman; the page does. `--offered` does the same for the narrators already on offer. Needs `ANGLES_API_KEY` and `ffmpeg`, and each sentence is one voice line, a credit each.
 
 The CLI imports `src/client.mjs` directly. A Skill copy edited by hand fails the
 test suite rather than shipping files the Skills disagree about.

@@ -237,7 +237,7 @@ test('explains an oversized upload instead of sending it', async () => {
   }
 });
 
-test('says what a gateway timeout means for quota and retries', async () => {
+test('says what a gateway timeout means for credits and retries', async () => {
   await withServer((request, response) => {
     response.statusCode = 524;
     response.setHeader('content-type', 'text/html');
@@ -251,7 +251,7 @@ test('says what a gateway timeout means for quota and retries', async () => {
     assert.equal(result.code, 1);
     const { hint } = JSON.parse(result.stderr);
     assert.match(hint, /may still be completing/);
-    assert.match(hint, /Only render spends a video allowance/);
+    assert.match(hint, /Only render costs credits/);
     assert.match(hint, /duplicate project/);
   });
 });

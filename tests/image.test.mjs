@@ -85,7 +85,7 @@ const made = (bytes, format, extra = {}) => ({
   aspect: '16:9',
   provider: 'evolink',
   model: 'doubao-seedream-4.0',
-  remaining: 29,
+  credits: { charged: 5, balance: 195 },
   ...extra,
 });
 
@@ -112,7 +112,7 @@ test('makes a picture, keeps the file, and records what it is and that it was ma
         model: 'doubao-seedream-4.0',
         asked: { text: words, aspect: '16:9' },
       });
-      assert.match(result.stdout, /harbour: images\/harbour\.jpg, 2560×1440, made by doubao-seedream-4\.0\. 29 left today\./);
+      assert.match(result.stdout, /harbour: images\/harbour\.jpg, 2560×1440, made by doubao-seedream-4\.0\. 5 credits; 195 left\./);
       assert.match(result.stdout, /Open it before it goes into a scene/);
       assert.doesNotMatch(result.stdout + result.stderr, new RegExp(testKey));
 
@@ -152,14 +152,18 @@ test('does not spend a picture on the same words twice, and does on new ones', a
 test('passes on what Angles says when it will not make a picture', async () => {
   await withAngles(
     () => ({
-      status: 429,
-      message: 'This account has made 30 pictures in the last 24 hours; the limit is 30. Try again later.',
-      details: { code: 'IMAGE_DAILY_LIMIT_REACHED', message: 'This account has made 30 pictures in the last 24 hours; the limit is 30. Try again later.' },
+      status: 402,
+      message: 'This needs 5 credits and the account has 2. Add credits at https://angles.video/credits.',
+      details: {
+        code: 'CREDITS_INSUFFICIENT',
+        message: 'This needs 5 credits and the account has 2. Add credits at https://angles.video/credits.',
+        credits: { required: 5, balance: 2 },
+      },
     }),
     async ({ directory, env }) => {
       const result = await run(directory, ['harbour', 'A harbour at night'], env);
       assert.equal(result.code, 1);
-      assert.match(result.stderr, /angles could not make harbour: HTTP 429 This account has made 30 pictures/);
+      assert.match(result.stderr, /angles could not make harbour: HTTP 402 This needs 5 credits and the account has 2\. Add credits at https:\/\/angles\.video\/credits\./);
       assert.equal(existsSync(join(directory, 'src', 'images.json')), false);
     }
   );
@@ -210,7 +214,7 @@ function studio() {
   let pictures = 0;
   return request => {
     if (request.url === '/assets') return { success: true, url: `https://cdn.test/screenshots/${++uploads}.jpg`, type: 'image' };
-    return made(jpegOf(2848, 1600 + pictures++), 'jpg', { remaining: 30 - pictures });
+    return made(jpegOf(2848, 1600 + pictures++), 'jpg', { credits: { charged: 5, balance: 200 - 5 * pictures } });
   };
 }
 
@@ -241,7 +245,7 @@ test('with a style set, the first picture is drawn from the words and every late
     assert.equal(requests[2].body.aspect, '9:16');
     assert.ok(requests[2].body.prompt.startsWith(`A keeper's desk seen from above. ${STYLE}. Drawn in the same style`));
     assert.match(requests[2].body.prompt, IN_ITS_STYLE);
-    assert.match(second.stdout, /desk: images\/desk\.jpg, 2848×1601, made by doubao-seedream-4\.0, drawn like harbour\. 28 left today\./);
+    assert.match(second.stdout, /desk: images\/desk\.jpg, 2848×1601, made by doubao-seedream-4\.0, drawn like harbour\. 5 credits; 190 left\./);
 
     const pictures = await read(directory, 'images.json');
     const harbourStamp = stampOf(await readFile(join(directory, 'public', 'images', 'harbour.jpg')));

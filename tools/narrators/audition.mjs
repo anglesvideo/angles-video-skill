@@ -11,8 +11,8 @@
 //       the voices the account already offers (GET /audio/voices), each asked
 //       for by name: what a caller gets after a narrator has been added
 //
-// Needs ANGLES_API_KEY and a system ffmpeg. Every sentence is one voice line
-// against the account's daily limit; the count is printed before it starts.
+// Needs ANGLES_API_KEY and a system ffmpeg. Every sentence is one voice line,
+// a credit each from the account's balance; the count is printed before it starts.
 //
 // It writes <out>/index.html to listen through, and <out>/results.json: for
 // each voice, who spoke it and how high the voice sits. A candidate spoken by
@@ -131,7 +131,7 @@ async function main() {
   }
   const lines = wanted.filter(row => !only.length || only.includes(row.language));
   if (!lines.length) fail(`Nothing to speak. Languages here: ${Object.keys(book).join(', ')}.`);
-  process.stdout.write(`${lines.length} voice lines against the account's daily limit.\n`);
+  process.stdout.write(`${lines.length} voice lines, a credit each from the account's balance.\n`);
 
   mkdirSync(out, { recursive: true });
   const rows = [];
